@@ -1,0 +1,24 @@
+# Dati, checkpoint, log: mai in Git
+data/
+runs/
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Immagini campione: finche' non hai letto le regole di State Farm
+reports/samples/
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.env
+
+# Kaggle
+kaggle.json
+.DS_Store
