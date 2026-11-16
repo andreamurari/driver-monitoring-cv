@@ -18,7 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 # Giorno 2 in poi, da installare su Colab/Kaggle con le versioni dell'ambiente cloud
 train = ["torch", "torchvision", "timm", "tensorboard"]
-dev = ["pytest", "ruff", "kaggle"]
+dev = ["pytest", "ruff", "kaggle", "six"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,5 +1,5 @@
 # Dati, checkpoint, log: mai in Git
-data/
+/data/
 runs/
 checkpoints/
 *.pt

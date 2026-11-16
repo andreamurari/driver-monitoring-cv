@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from dms.data.splits import (  # noqa: E402
+from dms.data.splits import (
     assert_no_overlap,
     make_group_splits,
     random_image_split,

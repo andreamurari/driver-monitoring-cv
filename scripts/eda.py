@@ -13,10 +13,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
-from dms.data.dataset import CLASS_NAMES  # noqa: E402
-from dms.data.splits import load_driver_list  # noqa: E402
+from dms.data.dataset import CLASS_NAMES
+from dms.data.splits import load_driver_list
 
 
 def main() -> None:

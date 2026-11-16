@@ -9,12 +9,30 @@ logs are git-ignored. Everything is downloaded by script.
 - Content: labelled 2D dashboard-camera images of drivers, 10 classes (c0 to c9),
   plus `driver_imgs_list.csv` mapping each image to a driver (`subject`).
 - How to get it: accept the competition rules on Kaggle, then `make data`.
-- Licence / terms of use: **TODO (day 1)** copy here, in your own words, what the
-  Rules and Data tabs allow: use outside the competition, commercial vs
-  non-commercial, redistribution, showing sample images publicly.
-  Date read: **TODO**
-- Consequences for this repo: **TODO** (for example: no images committed, no
-  trained weights published, sample images shown or not).
+- Licence / terms of use (Rules tab, read on 2026-11-16; my reading, not legal advice):
+  - No licence is granted on the data. Downloading it means accepting the
+    competition rules as a binding agreement with State Farm.
+  - Use outside the competition: the rules allow use "solely for the purpose and
+    duration of the Competition" (it ended on 2016-08-01), unless the competition
+    website says otherwise. Use for a personal learning project after the end is
+    therefore not explicitly covered. Nothing distinguishes commercial from
+    non-commercial use, because no use beyond the competition is granted at all.
+  - Redistribution: forbidden. The data must not be transmitted, duplicated,
+    published or made available to anyone who has not accepted the rules, and
+    access by such people must be prevented.
+  - Sample images: they are part of the data, so showing them publicly counts as
+    publishing it.
+  - Code: code based on the data may be shared publicly (not privately), and
+    sharing it publicly places it under the MIT License.
+  - Trained weights: not mentioned by the rules.
+- Consequences for this repo:
+  - No images and no `driver_imgs_list.csv` are committed; `data/` is git-ignored
+    and everything is downloaded by script with each user's own Kaggle account.
+  - No sample images in the README, reports or notebooks; `reports/samples/` is
+    git-ignored. Public reports contain only aggregate counts, metrics and plots.
+  - No trained weights are published, as a conservative choice.
+  - The code is released under the MIT License.
+  - The project is for personal study and portfolio only, not for commercial use.
 
 ## Optional extensions (only if time allows)
 
