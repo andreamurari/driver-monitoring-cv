@@ -28,4 +28,9 @@ make test
 
 ## Data and licences
 
-See [DATA.md](DATA.md). No dataset content is stored in this repository.
+See [DATA.md](DATA.md). No dataset content is stored in this repository: no images,
+no sample pictures and no trained weights. Intended use and limits are in
+[MODEL_CARD.md](MODEL_CARD.md).
+
+The code is released under the [MIT License](LICENSE). The licence covers the code
+only, not the dataset.

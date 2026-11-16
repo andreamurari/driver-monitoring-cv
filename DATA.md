@@ -25,6 +25,15 @@ logs are git-ignored. Everything is downloaded by script.
   - Code: code based on the data may be shared publicly (not privately), and
     sharing it publicly places it under the MIT License.
   - Trained weights: not mentioned by the rules.
+  - Data tab (read on 2026-11-17): it describes the classes and the files and adds
+    no terms of use, so the Rules tab is the only source of conditions.
+- Facts from the Data tab that matter for the evaluation:
+  - The images were staged in a controlled environment: a truck towed the car, so
+    the "drivers" were not actually driving.
+  - Kaggle's own train/test split is by driver, like the splits in this repo.
+  - Metadata such as creation dates was removed.
+  - The unlabelled test set contains extra resized images that are ignored in
+    scoring, so it is not a clean sample of the same distribution.
 - Consequences for this repo:
   - No images and no `driver_imgs_list.csv` are committed; `data/` is git-ignored
     and everything is downloaded by script with each user's own Kaggle account.
