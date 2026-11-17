@@ -10,6 +10,10 @@ checkpoints/
 # Immagini campione: finche' non hai letto le regole di State Farm
 reports/samples/
 
+# Notebook di prova: gli output possono contenere immagini del dataset
+testing_ground.ipynb
+scratch/
+
 # Python
 __pycache__/
 *.egg-info/
