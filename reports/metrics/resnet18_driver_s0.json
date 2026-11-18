@@ -1,0 +1,37 @@
+{
+  "config": {
+    "data": {
+      "batch_size": 64,
+      "csv_path": "/kaggle/input/competitions/state-farm-distracted-driver-detection/driver_imgs_list.csv",
+      "img_root": "/kaggle/input/competitions/state-farm-distracted-driver-detection/imgs/train",
+      "mode": "letterbox",
+      "num_workers": 4,
+      "size": 224,
+      "split": "driver"
+    },
+    "finetune": {
+      "epochs": 5,
+      "lr": 0.0001,
+      "train_backbone": true,
+      "weight_decay": 0.0001
+    },
+    "head": {
+      "epochs": 3,
+      "lr": 0.001,
+      "train_backbone": false,
+      "weight_decay": 0.0001
+    },
+    "label_smoothing": 0.0,
+    "model": {
+      "name": "resnet18",
+      "pretrained": true
+    },
+    "name": "resnet18_driver_s0",
+    "seed": 0
+  },
+  "val": {
+    "loss": 0.41954000738445324,
+    "acc": 0.8661145617667356,
+    "best_epoch_val_loss": 0.41954000738445324
+  }
+}
