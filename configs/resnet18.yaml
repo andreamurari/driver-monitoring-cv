@@ -4,6 +4,7 @@ seed: 0
 
 data:
   split: driver          # "random" per l'esperimento sul leakage
+  aug: standard          # none | standard (colore + affine) | flip (standard + specchio con scambio c1<->c3, c2<->c4)
   batch_size: 64
   num_workers: 2         # 0 in locale su Windows se dà problemi; 2-4 su Kaggle
   size: 224

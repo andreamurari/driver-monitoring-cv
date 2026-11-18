@@ -40,21 +40,27 @@ def build_dataloaders(
     size: int = 224,
     mode: str = "letterbox",
     seed: int = 0,
+    aug: str = "standard",
     ) -> dict[str, DataLoader]:
+    if aug not in ["standard", "none", "flip"]:
+        raise ValueError(f"augmentation sconosciuta: {aug}")
     df = load_driver_list(csv_path)
     parts = split_dataframes(df, split, splits_path, seed)
 
     loaders = {}
     for name, part in parts.items():
         is_train = name == "train"
-        dataset = DriverDataset(part, img_root, get_transforms(is_train, size, mode))
+        augment = aug != "none" and is_train
+        hflip = aug == "flip" and is_train
+
+        dataset = DriverDataset(part, img_root, get_transforms(augment, size, mode), hflip=hflip)
         loaders[name] = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=is_train,  # shuffle solo in train per mescolare le immagini
             num_workers=num_workers,
             pin_memory=torch.cuda.is_available(),  # utile se si usa la GPU per velocizzare il trasferimento
-            persistent_workers=True,  # utile per non ricaricare i worker ad ogni epoca
+            persistent_workers=num_workers > 0,  # utile per non ricaricare i worker ad ogni epoca
             drop_last=is_train,  # drop l'ultimo batch se è più piccolo di batch_size in train
         )
     return loaders
