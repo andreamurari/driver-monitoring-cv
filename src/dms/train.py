@@ -87,7 +87,6 @@ def run_phase(name, model, loaders, criterion, cfg_phase, device, writer, run_di
     optimizer = make_optimizer(model, cfg_phase["lr"], cfg_phase["weight_decay"])
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg_phase["epochs"])
     print(f"[{name}] parametri (totali, addestrabili): {count_parameters(model)}")
-
     for _ in range(cfg_phase["epochs"]):
         state["epoch"] += 1
         t0 = time.time()
@@ -108,6 +107,14 @@ def run_phase(name, model, loaders, criterion, cfg_phase, device, writer, run_di
         if va["loss"] < state["best_val_loss"]:
             state["best_val_loss"] = va["loss"]
             torch.save(model.state_dict(), run_dir / "best.pt")
+            state["best_epoch"] = e
+
+        state["history"].append({ "epoch": e,
+                                 "phase": name,
+                                 "train_loss": tr["loss"],
+                                 "train_acc": tr["acc"],
+                                 "val_loss": va["loss"],
+                                 "val_acc": va["acc"] })
 
 
 def main() -> None:
@@ -120,6 +127,7 @@ def main() -> None:
     cfg = yaml.safe_load(Path(args.config).read_text())
     set_seed(cfg["seed"])
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"device: {device}, torch {torch.__version__}, cuda {torch.version.cuda}, cudnn {torch.backends.cudnn.version()}")
 
     run_dir = Path("runs") / cfg["name"]
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -133,7 +141,7 @@ def main() -> None:
         return
 
     writer = SummaryWriter(run_dir / "tb")
-    state = {"epoch": 0, "best_val_loss": float("inf")}
+    state = {"epoch": 0, "best_epoch": 0, "history": [], "best_val_loss": float("inf")}
     for phase_name in ("head", "finetune"):
         run_phase(phase_name, model, loaders, criterion, cfg[phase_name], device,
                   writer, run_dir, state)
@@ -143,7 +151,8 @@ def main() -> None:
     model.load_state_dict(torch.load(run_dir / "best.pt", map_location=device))
     final = evaluate(model, loaders["val"], criterion, device)
     final["best_epoch_val_loss"] = state["best_val_loss"]
-    (run_dir / "metrics.json").write_text(json.dumps({"config": cfg, "val": final}, indent=2))
+    final["best_epoch"] = state["best_epoch"]
+    (run_dir / "metrics.json").write_text(json.dumps({"config": cfg, "val": final, "history": state["history"]}, indent=2))
     print("val finale:", final)
 
 
