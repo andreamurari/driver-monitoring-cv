@@ -1,0 +1,29 @@
+# Giorno 3, rumore: baseline ResNet18 con seed 1
+name: resnet18_driver_s1
+seed: 1
+
+data:
+  split: driver          # "random" per l'esperimento sul leakage
+  aug: standard          # none | standard (colore + affine) | flip (standard + specchio con scambio c1<->c3, c2<->c4)
+  batch_size: 64
+  num_workers: 2         # 0 in locale su Windows se dà problemi; 2-4 su Kaggle
+  size: 224
+  mode: letterbox
+
+model:
+  name: resnet18
+  pretrained: true
+
+label_smoothing: 0.0     # lo proviamo dopo, come ablazione
+
+head:                    # fase 1: backbone congelato
+  train_backbone: false
+  epochs: 3
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+
+finetune:                # fase 2: tutta la rete, lr più basso
+  train_backbone: true
+  epochs: 5
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
