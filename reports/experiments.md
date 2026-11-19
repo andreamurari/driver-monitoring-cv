@@ -13,6 +13,8 @@ ottimistiche. Il test set si usa una volta sola, alla fine del progetto.
 | 2026-11-18 | resnet18_aug-flip_s0 | configs/resnet18_aug-flip.yaml | a243f03 | 0 | per conducente | 8 | 0.4904 | 0.834 | ablazione: flip, non conclusivo |
 | 2026-11-18 | resnet18_320_s0 | configs/resnet18_320.yaml | a243f03 | 0 | per conducente | 7 | 0.2763 | 0.912 | migliore finora, nuova baseline |
 | 2026-11-18 | resnet50_s0 | configs/resnet50.yaml | a243f03 | 0 | per conducente | 4 | 0.5255 | 0.820 | overfitting dopo l'epoca 4 |
+| 2026-11-19 | vit_s16_s0 | configs/vit_s16.yaml | 8ef51d5 | 0 | per conducente | 8 | 0.3600 | 0.903 | ricetta ViT (lr 5e-5, wd 0.05) |
+| 2026-11-19 | vit_s16_s1 | configs/vit_s16_s1.yaml | d61befa | 1 | per conducente | 6 | 0.3468 | 0.896 | rumore tra seed del ViT |
 
 Ambiente: Kaggle, 1× Tesla T4, batch 64, 224 letterbox, 3 epoche head (lr 1e-3) +
 5 epoche fine-tuning (lr 1e-4), AdamW, coseno, nessun label smoothing.
@@ -79,6 +81,50 @@ Metrica principale: val log-loss (l'accuracy come riferimento).
   smentita, ma non è dimostrato che sia peggiore. Con questa ricetta un modello più
   grande non aiuta; servirebbero lr più basso, meno epoche o più regolarizzazione.
 
+## Giorno 4: ViT-S/16 contro ResNet
+
+ViT-S/16 (`vit_small_patch16_224.augreg_in21k_ft_in1k`, timm) con la stessa pipeline della
+baseline a 224. Ognuno con la sua ricetta standard: normalizzazione del proprio
+preaddestramento (ViT: mean/std 0.5) e, per il ViT, fine-tuning con lr 5e-5 e weight decay 0.05.
+
+Previsione: incerta. Prima "la ResNet18 resta migliore, pochi dati per un ViT", poi
+"20.000 immagini potrebbero bastare per un fine-tuning". Per il seed 1: simile al seed 0.
+
+| Modello | Risoluzione | Parametri | val log-loss (seed 0 / 1) | val acc (seed 0 / 1) | Latenza CPU mediana (p95) | s/epoca fine-tuning (T4) |
+|---|---|---|---|---|---|---|
+| ResNet18 | 224 | 11,2 M | 0.420 / 0.516 | 0.866 / 0.844 | 27 ms (29) | ~68 |
+| ViT-S/16 | 224 | 21,7 M | 0.360 / 0.347 | 0.903 / 0.896 | 59 ms (62) | ~188 |
+| ResNet50 | 224 | 23,5 M | 0.526 / n.d. | 0.820 / n.d. | 60 ms (63) | n.d. |
+| ResNet18 | 320 | 11,2 M | 0.276 / n.d. | 0.912 / n.d. | 50 ms (53) | n.d. |
+
+Latenza: `python -m dms.benchmark`, batch 1, 4 thread, 100 esecuzioni dopo 20 di
+riscaldamento, portatile collegato alla corrente (a batteria i tempi raddoppiano e
+oscillano). Dettagli in `reports/latency.json`.
+
+- **Accuratezza:** a 224 il ViT batte la ResNet18 su entrambi i seed e su entrambe le
+  metriche: log-loss 0.360 e 0.347 contro 0.420 e 0.516, accuracy 0.903 e 0.896 contro
+  0.866 e 0.844. Con un solo seed la differenza con la ResNet (0.06) stava dentro il rumore;
+  il secondo seed la conferma. Anche la differenza tra i due seed è molto più piccola
+  (0.013 contro 0.096). La previsione "pochi dati per un ViT" è smentita: il preaddestramento
+  su ImageNet-21k compensa i 18 conducenti del training. Il modello migliore resta però la
+  ResNet18 a 320 (0.276, un solo seed), e il ViT a 320 non è stato provato.
+- **Fase head:** con il backbone congelato il ViT arriva a 0.63-0.64 di val accuracy, la
+  ResNet18 a circa 0.51. Le feature del ViT preaddestrato sono già più adatte al problema
+  prima del fine-tuning.
+- **Curve irregolari:** la val loss del ViT oscilla molto durante il fine-tuning (seed 1:
+  0.37, 0.61, 0.35, 0.42, 0.38). Il checkpoint migliore è scelto sulla stessa validazione,
+  quindi il numero riportato è un po' ottimistico, più che per curve regolari.
+- **Latenza e costo:** sulla CPU il ViT impiega 59 ms per immagine, come la ResNet50 (60 ms)
+  con un numero simile di parametri e il doppio della ResNet18 (27 ms). Il numero di parametri
+  non decide da solo la velocità. In training il ViT costa quasi 3 volte la ResNet18 su T4
+  (188 contro 68 s per epoca di fine-tuning): con la ResNet il collo di bottiglia era il
+  caricamento dei dati, con il ViT è la GPU. La ResNet18 a 320 è sia più accurata (un seed)
+  sia più veloce (50 ms) del ViT a 224.
+- **Limiti del confronto:** ricette diverse (normalizzazione, lr e weight decay standard per
+  ciascun modello), quindi la differenza misurata include anche gli iperparametri; solo 2
+  seed; 4 conducenti in validazione; checkpoint scelto sulla validazione stessa. La conferma
+  definitiva arriverà dal test set e dalla cross-validation per gruppi.
+
 ## Prossimi passi
 
 - [x] Giorno 3: ResNet50, ablazione augmentation, 224 contro 320
@@ -87,4 +133,8 @@ Metrica principale: val log-loss (l'accuracy come riferimento).
 - [ ] Usare 320 come nuova baseline per i confronti successivi
 - [ ] ResNet50 con lr di fine-tuning più basso (es. 3e-5) o meno epoche
 - [ ] Più seed per il flip prima di decidere se tenerlo
-- [ ] Misurare la latenza su CPU a 224 e a 320
+- [x] Misurare la latenza su CPU a 224 e a 320
+- [ ] ViT a 320 (embedding di posizione interpolati, `img_size=320` in timm): latenza e accuratezza
+- [ ] Secondo seed per la ResNet18 a 320, prima di dichiararla il modello migliore
+- [ ] Argomento `--note` in `benchmark.py`, per scrivere le condizioni di misura nel JSON
+- [ ] Cella dello zip su Kaggle: rinominare il file a ogni giorno, senza `-j`
