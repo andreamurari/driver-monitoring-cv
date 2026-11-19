@@ -1,0 +1,52 @@
+{
+  "env": {
+    "cpu": "Intel64 Family 6 Model 181 Stepping 0, GenuineIntel",
+    "threads": 4,
+    "torch": "2.15.0+cpu",
+    "batch": 1,
+    "runs": 100,
+    "power": "portatile collegato alla corrente (a batteria i tempi raddoppiano e oscillano)"
+  },
+  "results": [
+    {
+      "model": "resnet18",
+      "size": 224,
+      "params_m": 11.2,
+      "median_ms": 26.87414997490123,
+      "p95_ms": 28.80321507109329,
+      "mean_ms": 27.016097998712212
+    },
+    {
+      "model": "resnet18",
+      "size": 320,
+      "params_m": 11.2,
+      "median_ms": 50.54200004087761,
+      "p95_ms": 52.56268993834965,
+      "mean_ms": 50.50943700247444
+    },
+    {
+      "model": "resnet50",
+      "size": 224,
+      "params_m": 23.5,
+      "median_ms": 60.27774995891377,
+      "p95_ms": 62.66529000131413,
+      "mean_ms": 60.27472900110297
+    },
+    {
+      "model": "resnet50",
+      "size": 320,
+      "params_m": 23.5,
+      "median_ms": 115.39790005190298,
+      "p95_ms": 120.39314503199421,
+      "mean_ms": 115.72976300376467
+    },
+    {
+      "model": "vit_s16",
+      "size": 224,
+      "params_m": 21.7,
+      "median_ms": 58.56959999073297,
+      "p95_ms": 62.237379961879924,
+      "mean_ms": 58.70874999673106
+    }
+  ]
+}
