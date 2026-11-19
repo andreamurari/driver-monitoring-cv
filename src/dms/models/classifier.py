@@ -36,6 +36,19 @@ def get_head(model: nn.Module) -> nn.Module:
     return head
 
 
+def get_normalization(model: nn.Module) -> tuple[tuple, tuple]:
+    """(mean, std) con cui il modello è stato preaddestrato."""
+    if hasattr(model, "get_classifier"):
+        import timm
+
+        cfg = timm.data.resolve_model_data_config(model)
+        return cfg["mean"], cfg["std"]
+    else:
+        from dms.data.transforms import IMAGENET_MEAN, IMAGENET_STD
+
+        return IMAGENET_MEAN, IMAGENET_STD
+
+
 def set_backbone_trainable(model: nn.Module, trainable: bool) -> None:
     """Congela (trainable=False) o scongela il backbone; la testa resta sempre addestrabile."""
     for param in model.parameters():

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from dms.data.dataset import DriverDataset
 from dms.data.splits import load_driver_list, load_splits, random_image_split
-from dms.data.transforms import get_transforms
+from dms.data.transforms import IMAGENET_MEAN, IMAGENET_STD, get_transforms
 
 
 def split_dataframes(
@@ -41,6 +41,10 @@ def build_dataloaders(
     mode: str = "letterbox",
     seed: int = 0,
     aug: str = "standard",
+    # TODO (passo 2): aggiungi mean e std (default: IMAGENET_MEAN, IMAGENET_STD da dms.data.transforms)
+    #   e passali a get_transforms qui sotto, per nome (mean=..., std=...)
+    mean: tuple[float, float, float] = IMAGENET_MEAN,
+    std: tuple[float, float, float] = IMAGENET_STD,
     ) -> dict[str, DataLoader]:
     if aug not in ["standard", "none", "flip"]:
         raise ValueError(f"augmentation sconosciuta: {aug}")
@@ -53,7 +57,7 @@ def build_dataloaders(
         augment = aug != "none" and is_train
         hflip = aug == "flip" and is_train
 
-        dataset = DriverDataset(part, img_root, get_transforms(augment, size, mode), hflip=hflip)
+        dataset = DriverDataset(part, img_root, get_transforms(augment, size, mode, mean=mean, std=std), hflip=hflip)
         loaders[name] = DataLoader(
             dataset,
             batch_size=batch_size,

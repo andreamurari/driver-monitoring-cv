@@ -30,7 +30,9 @@ def _resize_ops(size: int, mode: str) -> list:
     raise ValueError(f"mode sconosciuto: {mode}")
 
 
-def get_transforms(train: bool, size: int = 224, mode: str = "letterbox") -> v2.Compose:
+
+def get_transforms(train: bool, size: int = 224, mode: str = "letterbox", mean: tuple[float, float, float] = IMAGENET_MEAN, std: tuple[float, float, float] = IMAGENET_STD) -> v2.Compose:
+
     ops = _resize_ops(size, mode)
 
     if train:
@@ -41,5 +43,5 @@ def get_transforms(train: bool, size: int = 224, mode: str = "letterbox") -> v2.
 
     ops.append(v2.ToImage())
     ops.append(v2.ToDtype(torch.float32, scale=True))  # 0-255 -> 0-1
-    ops.append(v2.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD))
+    ops.append(v2.Normalize(mean=mean, std=std))
     return v2.Compose(ops)
