@@ -132,9 +132,7 @@ def main() -> None:
     run_dir = Path("runs") / cfg["name"]
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    # TODO (passo 4): prima il modello, poi i loader con la sua normalizzazione:
-    #   mean, std = get_normalization(model)   (ricordati di importarla)
-    #   build_dataloaders(..., mean=mean, std=std)
+    # Prima il modello: i loader usano la normalizzazione del suo preaddestramento
     model = build_model(**cfg["model"]).to(device)
     mean, std = get_normalization(model)
     loaders = build_dataloaders(**cfg["data"], seed=cfg["seed"], mean=mean, std=std)
