@@ -19,7 +19,7 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
 from dms.data.loaders import build_dataloaders
-from dms.models.classifier import build_model, count_parameters, set_backbone_trainable
+from dms.models.classifier import build_model, count_parameters, get_normalization, set_backbone_trainable
 
 
 def set_seed(seed: int) -> None:
@@ -132,8 +132,12 @@ def main() -> None:
     run_dir = Path("runs") / cfg["name"]
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    loaders = build_dataloaders(**cfg["data"], seed=cfg["seed"])
+    # TODO (passo 4): prima il modello, poi i loader con la sua normalizzazione:
+    #   mean, std = get_normalization(model)   (ricordati di importarla)
+    #   build_dataloaders(..., mean=mean, std=std)
     model = build_model(**cfg["model"]).to(device)
+    mean, std = get_normalization(model)
+    loaders = build_dataloaders(**cfg["data"], seed=cfg["seed"], mean=mean, std=std)
     criterion = nn.CrossEntropyLoss(label_smoothing=cfg.get("label_smoothing", 0.0))
 
     if args.overfit_batch:
