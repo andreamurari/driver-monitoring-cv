@@ -1,0 +1,29 @@
+# Giorno 4: ViT-S/16, seed 1 (rumore tra seed). Unica differenza da vit_s16.yaml: name e seed
+name: vit_s16_s1
+seed: 1
+
+data:
+  split: driver
+  aug: standard
+  batch_size: 64
+  num_workers: 2         # 0 in locale su Windows se dà problemi; 2-4 su Kaggle
+  size: 224
+  mode: letterbox
+
+model:
+  name: vit_s16
+  pretrained: true
+
+label_smoothing: 0.0     # lo proviamo dopo, come ablazione
+
+head:                    # fase 1: backbone congelato
+  train_backbone: false
+  epochs: 3
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+
+finetune:                # fase 2: tutta la rete, lr più basso
+  train_backbone: true
+  epochs: 5
+  lr: 5.0e-5             # ricetta standard ViT: più basso della ResNet (1e-4), i transformer sono più delicati nel fine-tuning
+  weight_decay: 0.05     # ricetta standard ViT: regolarizzazione forte contro l'overfitting (ResNet: 1e-4)
