@@ -28,3 +28,6 @@ __pycache__/
 # Kaggle
 kaggle.json
 .DS_Store
+
+# Pesi di modelli di terze parti (YOLO-COCO, MediaPipe): si scaricano, non si versionano
+models/

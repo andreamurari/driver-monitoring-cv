@@ -1,0 +1,12 @@
+<!-- Configurazione di Label Studio: riquadri per 4 classi. Da incollare in
+     Project > Settings > Labeling Interface > Code. -->
+<View>
+  <Image name="image" value="$image" zoom="true" zoomControl="true"/>
+  <RectangleLabels name="label" toName="image">
+    <Label value="phone" background="#e6194b"/>
+    <Label value="cup" background="#3cb44b"/>
+    <Label value="hand" background="#4363d8"/>
+    <Label value="face" background="#f58231"/>
+  </RectangleLabels>
+  <Text name="info" value="$info"/>
+</View>
