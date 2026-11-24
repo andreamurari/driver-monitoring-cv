@@ -31,3 +31,7 @@ kaggle.json
 
 # Pesi di modelli di terze parti (YOLO-COCO, MediaPipe): si scaricano, non si versionano
 models/
+
+# Etichette derivate da State Farm (zona grigia per le regole): si rigenerano con
+# select_images.py -> Label Studio -> ls_to_yolo.py, vedi annotations/GUIDELINES.md
+annotations/labels/
