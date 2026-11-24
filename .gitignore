@@ -18,6 +18,8 @@ scratch/
 __pycache__/
 *.egg-info/
 .venv/
+# Label Studio (Python 3.12), solo per annotare
+.venv-label/
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
