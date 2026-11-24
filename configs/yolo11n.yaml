@@ -1,0 +1,15 @@
+# Giorno 7: primo detector, YOLO11n da pesi COCO, sulle 146 immagini del primo lotto
+name: yolo11n_batch1_s0
+model: models/yolo11n.pt   # scaricato da Ultralytics al primo uso
+data: data/yolo/data.yaml  # generato da python -m dms.detection.prepare_yolo
+
+train:                     # argomenti passati a YOLO.train()
+  epochs: 60
+  patience: 15             # stop se la mAP di validazione non migliora per 15 epoche
+  imgsz: 640               # larghezza originale delle immagini: niente riduzione
+  batch: 8
+  workers: 2
+  device: cpu
+  seed: 0
+  deterministic: true
+  fliplr: 0.5              # flip lecito: le classi non dipendono dal lato
