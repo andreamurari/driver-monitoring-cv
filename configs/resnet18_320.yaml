@@ -1,28 +1,28 @@
-# Giorno 3, ablazione: risoluzione 320 invece di 224
+# Day 3 ablation: resolution 320 instead of 224
 name: resnet18_320_s0
 seed: 0
 
 data:
-  split: driver          # "random" per l'esperimento sul leakage
-  aug: standard          # none | standard (colore + affine) | flip (standard + specchio con scambio c1<->c3, c2<->c4)
+  split: driver          # "random" for the leakage experiment only
+  aug: standard          # none | standard (colour + affine) | flip (standard + mirror with c1<->c3, c2<->c4 label swap)
   batch_size: 64
-  num_workers: 2         # 0 in locale su Windows se dà problemi; 2-4 su Kaggle
-  size: 320              # lato dell'immagine quadrata finale (letterbox: il lato lungo diventa 320)
+  num_workers: 2         # 0 locally on Windows if it causes trouble; 2-4 on Kaggle
+  size: 320              # side of the final square image (letterbox: the long side becomes 320)
   mode: letterbox
 
 model:
   name: resnet18
   pretrained: true
 
-label_smoothing: 0.0     # lo proviamo dopo, come ablazione
+label_smoothing: 0.0     # to be tried later, as an ablation
 
-head:                    # fase 1: backbone congelato
+head:                    # phase 1: frozen backbone
   train_backbone: false
   epochs: 3
   lr: 1.0e-3
   weight_decay: 1.0e-4
 
-finetune:                # fase 2: tutta la rete, lr più basso
+finetune:                # phase 2: whole network, lower lr
   train_backbone: true
   epochs: 5
   lr: 1.0e-4

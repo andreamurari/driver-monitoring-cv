@@ -1,4 +1,4 @@
-# Giorno 4: ViT-S/16 (timm), stessa pipeline della baseline ResNet18 a 224
+# Day 4: ViT-S/16 (timm), same pipeline as the ResNet18 baseline at 224
 name: vit_s16_s0
 seed: 0
 
@@ -6,7 +6,7 @@ data:
   split: driver
   aug: standard
   batch_size: 64
-  num_workers: 2         # 0 in locale su Windows se dà problemi; 2-4 su Kaggle
+  num_workers: 2         # 0 locally on Windows if it causes trouble; 2-4 on Kaggle
   size: 224
   mode: letterbox
 
@@ -14,16 +14,16 @@ model:
   name: vit_s16
   pretrained: true
 
-label_smoothing: 0.0     # lo proviamo dopo, come ablazione
+label_smoothing: 0.0     # to be tried later, as an ablation
 
-head:                    # fase 1: backbone congelato
+head:                    # phase 1: frozen backbone
   train_backbone: false
   epochs: 3
   lr: 1.0e-3
   weight_decay: 1.0e-4
 
-finetune:                # fase 2: tutta la rete, lr più basso
+finetune:                # phase 2: whole network, lower lr
   train_backbone: true
   epochs: 5
-  lr: 5.0e-5             # ricetta standard ViT: più basso della ResNet (1e-4), i transformer sono più delicati nel fine-tuning
-  weight_decay: 0.05     # ricetta standard ViT: regolarizzazione forte contro l'overfitting (ResNet: 1e-4)
+  lr: 5.0e-5             # standard ViT recipe: lower than the ResNet (1e-4), transformers are more fragile to fine-tune
+  weight_decay: 0.05     # standard ViT recipe: strong regularisation against overfitting (ResNet: 1e-4)

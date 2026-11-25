@@ -1,4 +1,4 @@
-# Dati, checkpoint, log: mai in Git
+# Data, checkpoints, logs: never in Git
 /data/
 runs/
 checkpoints/
@@ -7,10 +7,10 @@ checkpoints/
 *.onnx
 *.ckpt
 
-# Immagini campione: finche' non hai letto le regole di State Farm
+# Sample images: the State Farm rules do not allow publishing them
 reports/samples/
 
-# Notebook di prova: gli output possono contenere immagini del dataset
+# Scratch notebook: outputs can embed dataset images
 testing_ground.ipynb
 scratch/
 
@@ -18,7 +18,7 @@ scratch/
 __pycache__/
 *.egg-info/
 .venv/
-# Label Studio (Python 3.12), solo per annotare
+# Label Studio (Python 3.12), for annotation only
 .venv-label/
 .pytest_cache/
 .ruff_cache/
@@ -29,9 +29,9 @@ __pycache__/
 kaggle.json
 .DS_Store
 
-# Pesi di modelli di terze parti (YOLO-COCO, MediaPipe): si scaricano, non si versionano
+# Third-party model weights (YOLO-COCO, MediaPipe): downloaded, not versioned
 models/
 
-# Etichette derivate da State Farm (zona grigia per le regole): si rigenerano con
-# select_images.py -> Label Studio -> ls_to_yolo.py, vedi annotations/GUIDELINES.md
+# Labels derived from State Farm (grey area under the rules): regenerate them with
+# select_images.py -> Label Studio -> ls_to_yolo.py, see annotations/GUIDELINES.md
 annotations/labels/

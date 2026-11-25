@@ -1,4 +1,4 @@
-"""DataLoader per train/val/test, con split per conducente o casuale (esperimento sul leakage)."""
+"""DataLoaders for train/val/test, with a split by driver or a random split (leakage experiment)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,10 +15,10 @@ from dms.data.transforms import IMAGENET_MEAN, IMAGENET_STD, get_transforms
 def split_dataframes(
     df: pd.DataFrame, split: str, splits_path: str | Path, seed: int = 0
 ) -> dict[str, pd.DataFrame]:
-    """Restituisce {"train": df, "val": df, "test": df}.
+    """Return {"train": df, "val": df, "test": df}.
 
-    split="driver": conducenti interi da splits.json (il protocollo del progetto).
-    split="random": split casuale per immagine, SOLO per l'esperimento sul leakage.
+    split="driver": whole drivers from splits.json (the project protocol).
+    split="random": random split by image, ONLY for the leakage experiment.
     """
     if split == "driver":
         splits = load_splits(splits_path)
@@ -27,7 +27,7 @@ def split_dataframes(
     if split == "random":
         return random_image_split(df, frac_val=0.15, frac_test=0.15, seed=seed)
 
-    raise ValueError(f"split sconosciuto: {split}")
+    raise ValueError(f"unknown split: {split}")
 
 
 def build_dataloaders(
@@ -41,13 +41,11 @@ def build_dataloaders(
     mode: str = "letterbox",
     seed: int = 0,
     aug: str = "standard",
-    # TODO (passo 2): aggiungi mean e std (default: IMAGENET_MEAN, IMAGENET_STD da dms.data.transforms)
-    #   e passali a get_transforms qui sotto, per nome (mean=..., std=...)
     mean: tuple[float, float, float] = IMAGENET_MEAN,
     std: tuple[float, float, float] = IMAGENET_STD,
     ) -> dict[str, DataLoader]:
     if aug not in ["standard", "none", "flip"]:
-        raise ValueError(f"augmentation sconosciuta: {aug}")
+        raise ValueError(f"unknown augmentation: {aug}")
     df = load_driver_list(csv_path)
     parts = split_dataframes(df, split, splits_path, seed)
 
@@ -61,10 +59,10 @@ def build_dataloaders(
         loaders[name] = DataLoader(
             dataset,
             batch_size=batch_size,
-            shuffle=is_train,  # shuffle solo in train per mescolare le immagini
+            shuffle=is_train,  # shuffle only in training
             num_workers=num_workers,
-            pin_memory=torch.cuda.is_available(),  # utile se si usa la GPU per velocizzare il trasferimento
-            persistent_workers=num_workers > 0,  # utile per non ricaricare i worker ad ogni epoca
-            drop_last=is_train,  # drop l'ultimo batch se è più piccolo di batch_size in train
+            pin_memory=torch.cuda.is_available(),  # faster host-to-GPU copies
+            persistent_workers=num_workers > 0,  # keep workers alive between epochs
+            drop_last=is_train,  # drop the last, smaller batch in training
         )
     return loaders

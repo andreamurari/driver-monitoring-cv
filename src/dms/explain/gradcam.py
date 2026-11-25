@@ -1,10 +1,10 @@
-"""Grad-CAM: dove guarda una CNN quando sceglie una classe.
+"""Grad-CAM: where a CNN looks when it picks a class.
 
-Uso (in locale; le immagini prodotte contengono foto del dataset e restano in scratch/, gitignored):
+Usage (locally; the output images contain dataset photos and stay in scratch/, git-ignored):
     python -m dms.explain.gradcam --run runs/kaggle/resnet18_320_s0 --top 30
 
-Prende i `top` errori più sicuri da <run>/predictions_val.csv e per ognuno salva in
-scratch/gradcam/ l'immagine con la mappa della classe prevista (sbagliata) e di quella vera.
+Takes the `top` most confident errors from <run>/predictions_val.csv and, for each, saves to
+scratch/gradcam/ the image with the map of the predicted (wrong) class and of the true class.
 """
 from __future__ import annotations
 
@@ -24,43 +24,43 @@ from dms.models.classifier import build_model, get_normalization
 
 
 class GradCAM:
-    """Grad-CAM su uno strato convoluzionale (per la ResNet: model.layer4)."""
+    """Grad-CAM on a convolutional layer (for the ResNet: model.layer4)."""
 
     def __init__(self, model: nn.Module, layer: nn.Module):
         self.model = model.eval()
-        self.activations = None  # uscita dello strato nel forward: (1, C, h, w)
-        self.gradients = None    # gradiente della classe rispetto a quell'uscita: (1, C, h, w)
+        self.activations = None  # layer output in the forward pass: (1, C, h, w)
+        self.gradients = None    # gradient of the class score w.r.t. that output: (1, C, h, w)
         layer.register_forward_hook(self._save)
 
     def _save(self, module, inputs, output):
-        """Hook: PyTorch lo chiama a ogni forward dello strato, passandogli la sua uscita."""
+        """Hook: PyTorch calls it on every forward pass of the layer, passing its output."""
         self.activations = output.detach()
-        # Un secondo hook, sul tensore: verrà chiamato nel backward con il suo gradiente
+        # A second hook, on the tensor: called in the backward pass with its gradient
         output.register_hook(lambda grad: setattr(self, "gradients", grad.detach()))
 
     def __call__(self, x: torch.Tensor, class_idx: int) -> np.ndarray:
-        """Mappa (H, W) con valori tra 0 e 1, alla risoluzione di x."""
-        # Qui i gradienti servono: niente torch.no_grad()
+        """Map (H, W) with values between 0 and 1, at the resolution of x."""
+        # Gradients are needed here: no torch.no_grad()
         self.model.zero_grad()
-        logits = self.model(x)          # il forward riempie self.activations
-        logits[0, class_idx].backward()  # il backward riempie self.gradients
+        logits = self.model(x)          # the forward pass fills self.activations
+        logits[0, class_idx].backward()  # the backward pass fills self.gradients
 
-        # 1. un peso per mappa: quanto la classe dipende da essa (gradiente medio) -> (1, C, 1, 1)
+        # 1. one weight per map: how much the class depends on it (mean gradient) -> (1, C, 1, 1)
         weights = self.gradients.mean(dim=(2, 3), keepdim=True)
-        # 2. somma pesata delle mappe, solo la parte che spinge verso la classe -> (1, 1, h, w)
+        # 2. weighted sum of the maps, only the part that pushes towards the class -> (1, 1, h, w)
         cam = F.relu((weights * self.activations).sum(dim=1, keepdim=True))
-        # 3. da h x w (10 x 10 a 320) alla risoluzione dell'input
+        # 3. from h x w (10 x 10 at 320) to the input resolution
         cam = F.interpolate(cam, size=x.shape[-2:], mode="bilinear", align_corners=False)
-        # 4. valori tra 0 e 1
+        # 4. values between 0 and 1
         cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
         return cam[0, 0].cpu().numpy()
 
 
 def overlay(image: np.ndarray, cam: np.ndarray, alpha: float = 0.45) -> np.ndarray:
-    """Sovrappone la mappa (colori 'jet') all'immagine RGB uint8."""
+    """Overlay the map ('jet' colours) on the uint8 RGB image."""
     import matplotlib
 
-    heat = matplotlib.colormaps["jet"](cam)[..., :3]  # (H, W, 3) tra 0 e 1
+    heat = matplotlib.colormaps["jet"](cam)[..., :3]  # (H, W, 3) between 0 and 1
     return ((1 - alpha) * image / 255 + alpha * heat).clip(0, 1)
 
 
@@ -80,7 +80,7 @@ def main() -> None:
     run_dir = Path(args.run)
     cfg = json.loads((run_dir / "metrics.json").read_text())["config"]
     if not cfg["model"]["name"].startswith("resnet"):
-        raise SystemExit("Grad-CAM qui è pensato per le ResNet (strato layer4)")
+        raise SystemExit("Grad-CAM here is written for ResNets (layer4)")
     size, mode = cfg["data"]["size"], cfg["data"]["mode"]
 
     model = build_model(cfg["model"]["name"], pretrained=False)
@@ -97,15 +97,15 @@ def main() -> None:
     for i, row in enumerate(errors.head(args.top).itertuples()):
         pil = Image.open(Path(args.img_root) / row.classname / row.img).convert("RGB")
         x = to_tensor(pil).unsqueeze(0)
-        # La stessa immagine che vede il modello (ridimensionata + bande), senza normalizzazione
+        # The image the model sees (resized + bands), without normalisation
         shown = np.array(pil)
         for op in _resize_ops(size, mode):
             shown = np.array(op(Image.fromarray(shown)))
 
         fig, axes = plt.subplots(1, 3, figsize=(12, 4))
         axes[0].imshow(shown)
-        axes[0].set_title(f"#{i} {row.subject} vera {row.classname}")
-        for ax, idx, label in ((axes[1], row.y_pred, "prevista"), (axes[2], row.y_true, "vera")):
+        axes[0].set_title(f"#{i} {row.subject} true {row.classname}")
+        for ax, idx, label in ((axes[1], row.y_pred, "predicted"), (axes[2], row.y_true, "true")):
             ax.imshow(overlay(shown, cam_fn(x, int(idx))))
             ax.set_title(f"{label}: {CLASSES[idx]} (p={getattr(row, f'p_{CLASSES[idx]}'):.2f})")
         for ax in axes:
@@ -114,7 +114,7 @@ def main() -> None:
         fig.savefig(out / f"{i:02d}_{row.subject}_{row.classname}_as_{CLASSES[row.y_pred]}.png",
                     dpi=90)
         plt.close(fig)
-    print(f"salvate {min(args.top, len(errors))} immagini in {out}/ (gitignored: non pubblicarle)")
+    print(f"saved {min(args.top, len(errors))} images to {out}/ (git-ignored: do not publish)")
 
 
 if __name__ == "__main__":

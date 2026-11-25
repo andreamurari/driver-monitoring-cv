@@ -1,128 +1,126 @@
-# Analisi degli errori v1
+# Error analysis v1
 
-Modello: `resnet18_320_s0` (ResNet18, 320 letterbox, il migliore finora). Dati: **validazione**,
-4 conducenti mai visti in training, 4.347 immagini. Il test set non è stato usato.
-Riproduzione: `python -m dms.evaluate --run runs/kaggle/resnet18_320_s0` e
+Model: `resnet18_320_s0` (ResNet18, 320 letterbox, the best so far). Data: **validation**,
+4 drivers never seen in training, 4,347 images. The test set was not used.
+Reproduce: `python -m dms.evaluate --run runs/kaggle/resnet18_320_s0` and
 `python -m dms.explain.gradcam --run runs/kaggle/resnet18_320_s0 --top 30`.
 
-Nessuna immagine del dataset compare in questo report (regole della competizione State Farm):
-gli esempi e le mappe Grad-CAM sono stati guardati in locale e qui sono descritti a parole.
+No dataset image appears in this report (State Farm competition rules): the examples and
+Grad-CAM maps were inspected locally and are described here in words.
 
-**In sintesi.** Il modello sbaglia l'8,8% delle immagini (382). Quasi metà degli errori
-riguarda una sola classe, c9 "parlare col passeggero", spesso scambiata per guida sicura:
-è un falso negativo, il tipo di errore più grave per un sistema di sicurezza. Gli errori
-sicuri del modello seguono due schemi (telefono letto come bicchiere, braccio alzato letto
-come "raggiungere dietro"), e Grad-CAM suggerisce che per c9 il modello usi lo sfondo
-invece della direzione dello sguardo.
+**Summary.** The model gets 8.8% of the images wrong (382). Almost half of the errors
+involve one class, c9 "talking to the passenger", often taken for safe driving: a false
+negative, the most serious kind of error for a safety system. The model's confident errors
+follow two patterns (a phone read as a cup, a raised arm read as "reaching behind"), and
+Grad-CAM suggests that for c9 the model uses the background instead of the gaze direction.
 
-## Metriche
+## Metrics
 
-| Metrica | Valore |
+| Metric | Value |
 |---|---|
 | Accuracy | 0.912 |
 | Macro-F1 | 0.908 |
-| Log-loss | 0.2763 (identica alla misura su Kaggle: pipeline locale verificata) |
+| Log-loss | 0.2763 (identical to the Kaggle measurement: local pipeline verified) |
 
-![Matrice di confusione normalizzata](figures/confusion_resnet18_320_s0.png)
+![Normalised confusion matrix](figures/confusion_resnet18_320_s0.png)
 
-**Per classe** (recall = quante immagini di quella classe vengono riconosciute; precision =
-quante delle previsioni di quella classe sono giuste):
+**Per class** (recall = how many images of the class are recognised; precision = how many
+predictions of the class are correct):
 
-| Classe | Precision | Recall | F1 |
+| Class | Precision | Recall | F1 |
 |---|---|---|---|
-| c0 guida sicura | 0.804 | 0.874 | 0.837 |
-| c1 messaggi, destra | 0.995 | 0.872 | 0.929 |
-| c2 telefono, destra | 0.996 | 0.991 | 0.993 |
-| c3 messaggi, sinistra | 0.942 | 1.000 | 0.970 |
-| c4 telefono, sinistra | 0.982 | 0.982 | 0.982 |
+| c0 safe driving | 0.804 | 0.874 | 0.837 |
+| c1 texting, right | 0.995 | 0.872 | 0.929 |
+| c2 phone call, right | 0.996 | 0.991 | 0.993 |
+| c3 texting, left | 0.942 | 1.000 | 0.970 |
+| c4 phone call, left | 0.982 | 0.982 | 0.982 |
 | c5 radio | 0.861 | 0.978 | 0.916 |
-| c6 bere | 0.918 | 1.000 | 0.957 |
-| c7 raggiungere dietro | 0.821 | 0.964 | 0.887 |
-| c8 capelli e trucco | 0.907 | 0.801 | 0.851 |
-| **c9 parlare col passeggero** | 0.917 | **0.647** | **0.759** |
+| c6 drinking | 0.918 | 1.000 | 0.957 |
+| c7 reaching behind | 0.821 | 0.964 | 0.887 |
+| c8 hair and makeup | 0.907 | 0.801 | 0.851 |
+| **c9 talking to the passenger** | 0.917 | **0.647** | **0.759** |
 
-**Confusioni principali** (quota della classe vera):
+**Main confusions** (share of the true class):
 
-| Vera → prevista | Quota |
+| True → predicted | Share |
 |---|---|
-| c9 passeggero → c0 guida sicura | 21% |
-| c8 capelli → c7 raggiungere dietro | 10% |
-| c0 guida sicura → c5 radio | 8% |
-| c1 messaggi destra → c6 bere | 6% |
-| c9 passeggero → c5 radio | 6% |
+| c9 passenger → c0 safe driving | 21% |
+| c8 hair → c7 reaching behind | 10% |
+| c0 safe driving → c5 radio | 8% |
+| c1 texting right → c6 drinking | 6% |
+| c9 passenger → c5 radio | 6% |
 
-**Per conducente:**
+**Per driver:**
 
-| Conducente | Immagini | Accuracy | Errori | Classi con più errori |
+| Driver | Images | Accuracy | Errors | Classes with most errors |
 |---|---|---|---|---|
-| p022 | 1.233 | 0.965 | 43 | c9 (29) |
-| p024 | 1.226 | 0.940 | 73 | c9 (36), c1 (30) |
-| p021 | 1.237 | 0.875 | 155 | c8 (60), c9 (37), c1 (28) |
+| p022 | 1,233 | 0.965 | 43 | c9 (29) |
+| p024 | 1,226 | 0.940 | 73 | c9 (36), c1 (30) |
+| p021 | 1,237 | 0.875 | 155 | c8 (60), c9 (37), c1 (28) |
 | p039 | 651 | 0.829 | 111 | c9 (56), c0 (39) |
 
-c9 è la classe con più errori per tutti e quattro i conducenti (158 dei 382 errori totali).
+c9 is the class with most errors for all four drivers (158 of the 382 errors).
 
-## Ipotesi scritte prima di guardare i risultati
+## Hypotheses written before looking at the results
 
-| Ipotesi | Esito |
+| Hypothesis | Outcome |
 |---|---|
-| Le coppie più confuse sono destra/sinistra: c2↔c4 e c1↔c3 | **Smentita.** c2, c3 e c4 hanno recall tra 0.98 e 1.00. La telecamera è dal lato del passeggero: un telefono nella mano destra (vicino, visibile) e uno nella sinistra (lontano, dietro la testa) danno foto molto diverse, non speculari |
-| c7 sarà la classe riconosciuta meglio, perché la postura cambia molto | **A metà.** Recall alta (0.964) ma non la più alta (c3 e c6: 1.000), e precision tra le più basse (0.821): la postura "braccio lontano dal corpo" attira anche immagini di altre classi |
-| Meno di 10 punti di accuracy tra il conducente migliore e il peggiore | **Smentita.** 13,6 punti (p022 0.965, p039 0.829) |
+| The most confused pairs are left/right: c2↔c4 and c1↔c3 | **Refuted.** c2, c3 and c4 have recall between 0.98 and 1.00. The camera is on the passenger side: a phone in the right hand (close, visible) and one in the left (far, behind the head) give very different pictures, not mirror images |
+| c7 will be the best-recognised class, because the posture changes a lot | **Partly.** High recall (0.964) but not the highest (c3 and c6: 1.000), and among the lowest precision (0.821): the "arm away from the body" posture also attracts images of other classes |
+| Less than 10 accuracy points between the best and the worst driver | **Refuted.** 13.6 points (p022 0.965, p039 0.829) |
 
-Il primo punto spiega anche un risultato del giorno 3: il flip orizzontale con scambio delle
-etichette non ha aiutato, perché un'immagine "mano destra" specchiata non assomiglia a una
-foto reale "mano sinistra" (il volante cambia lato, la mano resta vicina alla telecamera).
+The first point also explains a day 3 result: horizontal flip with label swap did not help,
+because a mirrored "right hand" image does not look like a real "left hand" photo (the
+steering wheel changes side, the hand stays close to the camera).
 
-## I 30 errori più sicuri
+## The 30 most confident errors
 
-I 30 errori con la confidenza più alta (tutti sopra 0.93), classificati a mano guardando le
-immagini:
+The 30 errors with the highest confidence (all above 0.93), classified by hand from the
+images:
 
-| Categoria | Errori | Cosa c'è dentro |
+| Category | Errors | What is inside |
 |---|---|---|
-| Errore del modello (immagine chiara) | 18 | braccio alzato verso i capelli letto come "raggiungere dietro" (c8 → c7, 8); telefono in mano letto come bicchiere (c1/c2 → c6, 5); mano alla bocca letta come telefono (c8 → c4, 2); altri 3 |
-| Etichetta dubbia | 9 | 6 da una sola sequenza di p022 etichettata c9 in cui la conducente guarda avanti, con le mani sul volante; 3 immagini di p021 che sembrano davvero la classe prevista |
-| Occlusione | 2 | telefono in gran parte coperto dalla mano (c1 → c6) |
-| Posa atipica | 1 | |
+| Model error (clear image) | 18 | arm raised to the hair read as "reaching behind" (c8 → c7, 8); phone in hand read as a cup (c1/c2 → c6, 5); hand at the mouth read as a phone (c8 → c4, 2); 3 others |
+| Questionable label | 9 | 6 from a single p022 sequence labelled c9 in which the driver looks ahead with her hands on the wheel; 3 p021 images that really look like the predicted class |
+| Occlusion | 2 | phone mostly hidden by the hand (c1 → c6) |
+| Unusual pose | 1 | |
 
-- **Pochi momenti, ripetuti.** I fotogrammi consecutivi sono quasi identici: due sole sequenze
-  (p021 con il braccio alzato, p022 che guarda avanti) fanno 14 dei 30 errori. I 30 errori
-  corrispondono a circa 10-12 situazioni distinte.
-- **Errori sicuri ed errori incerti.** Tutti i 30 vengono da p021 e p022, nessuno da p039,
-  che pure ha l'accuracy più bassa: p039 sbaglia spesso ma con poca sicurezza, p021 sbaglia
-  con sicurezza. Per la log-loss pesano di più i secondi.
+- **Few moments, repeated.** Consecutive frames are near identical: two sequences alone
+  (p021 with the raised arm, p022 looking ahead) make 14 of the 30 errors. The 30 errors
+  correspond to about 10-12 distinct situations.
+- **Confident and uncertain errors.** All 30 come from p021 and p022, none from p039,
+  which has the lowest accuracy: p039 is often wrong but with little confidence, p021 is
+  wrong with confidence. The latter weigh more on the log-loss.
 
-## Dove guarda il modello (Grad-CAM)
+## Where the model looks (Grad-CAM)
 
-Mappe calcolate sull'ultimo blocco convoluzionale (`layer4`, griglia 10×10 a 320), per la
-classe prevista e per quella vera:
+Maps computed on the last convolutional block (`layer4`, a 10×10 grid at 320), for the
+predicted class and the true class:
 
-- **Telefono → bere.** Entrambe le mappe sono calde sulla mano con il telefono e
-  sull'avambraccio. Il modello guarda il punto giusto ma non riconosce l'oggetto: a questa
-  risoluzione un telefono stretto in mano a metà petto e un bicchiere hanno la stessa
-  forma, e il gesto del braccio pesa più dell'oggetto. È un problema di riconoscimento, non
-  di attenzione.
-- **Braccio alzato → raggiungere dietro.** La mappa di c7 è calda sul busto e sotto il
-  braccio, quella di c8 sulla testa e sulla mano tra i capelli. L'indizio corretto c'è ma
-  pesa meno della postura del corpo: una scorciatoia "braccio lontano dal corpo = c7".
-- **c9 → c0 (p022).** La mappa di c0 è sulle mani al volante. La mappa di c9, la classe vera,
-  è calda sul finestrino, sul parcheggio fuori e sul bordo dell'immagine, non sulla testa.
-  Per "parlare col passeggero" il modello sembra usare lo sfondo invece della direzione dello
-  sguardo: una possibile scorciatoia spuria, che con persone e luoghi nuovi non regge.
+- **Phone → drinking.** Both maps are hot on the hand holding the phone and on the
+  forearm. The model looks at the right place but does not recognise the object: at this
+  resolution a phone held at chest height and a cup have the same shape, and the arm's
+  gesture weighs more than the object. It is a recognition problem, not an attention one.
+- **Raised arm → reaching behind.** The c7 map is hot on the torso and under the arm, the
+  c8 map on the head and the hand in the hair. The right cue is there but weighs less than
+  the body posture: a shortcut "arm away from the body = c7".
+- **c9 → c0 (p022).** The c0 map is on the hands on the wheel. The map for c9, the true
+  class, is hot on the window, the car park outside and the image border, not on the head.
+  For "talking to the passenger" the model seems to use the background instead of the gaze
+  direction: a possible spurious shortcut that does not hold for new people and places.
 
-Cautele: Grad-CAM indica una zona, non un oggetto (la griglia è 10×10), e le mappe sono
-indizi, non prove. Sono state guardate solo sugli errori più sicuri.
+Caveats: Grad-CAM points to an area, not an object (the grid is 10×10), and the maps are
+clues, not proof. They were only inspected on the most confident errors.
 
-## Cosa fare per ogni famiglia di errori
+## What to do for each error family
 
-| Famiglia | Ipotesi | Prova prevista |
+| Family | Hypothesis | Planned test |
 |---|---|---|
-| c9 passeggero → c0, sfondo nella mappa di c9 | il modello usa lo sfondo, non lo sguardo | ablazione con sfondo mascherato (giorno 10); più avanti un ritaglio del volto come ingresso aggiuntivo |
-| Telefono ↔ bicchiere | l'oggetto è troppo piccolo a 320 | detector del telefono e modello a due rami con i ritagli delle mani (giorni 6-9) |
-| Braccio alzato → c7 | scorciatoia sulla postura | ritagli di mani e testa nel modello a due rami; controllare se il problema resta con il ViT |
-| Etichette dubbie (sequenza c9 di p022) | fotogrammi di transizione etichettati con la classe della sequenza | contarle anche nel training; non correggere le etichette di validazione, ma riportarne la stima |
-| Conducente p039 | errori numerosi ma incerti (c9, c0) | accuratezza per conducente nella cross-validation per gruppi, per capire se è un caso isolato |
+| c9 passenger → c0, background in the c9 map | the model uses the background, not the gaze | background-masking ablation (day 10); later a face crop as an extra input |
+| Phone ↔ cup | the object is too small at 320 | phone detector and two-branch model with hand crops (days 6-9) |
+| Raised arm → c7 | posture shortcut | hand and head crops in the two-branch model; check whether the problem persists with the ViT |
+| Questionable labels (p022 c9 sequence) | transition frames labelled with the class of the sequence | count them in training too; do not fix validation labels, but report an estimate |
+| Driver p039 | many but uncertain errors (c9, c0) | per-driver accuracy in grouped cross-validation, to see whether it is an isolated case |
 
-Le immagini di questa analisi (griglia degli errori e mappe Grad-CAM) restano in locale
-(`testing_ground.ipynb`, `scratch/gradcam/`, entrambi esclusi da Git).
+The images used for this analysis (error grid and Grad-CAM maps) stay local
+(`testing_ground.ipynb`, `scratch/gradcam/`, both excluded from Git).

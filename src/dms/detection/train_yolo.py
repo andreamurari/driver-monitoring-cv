@@ -1,11 +1,11 @@
-"""Fine-tuning di YOLO sulle annotazioni e valutazione sul test (conducenti mai visti).
+"""Fine-tune YOLO on the annotations and evaluate on the test split (unseen drivers).
 
-Uso:
+Usage:
     python -m dms.detection.train_yolo --config configs/yolo11n.yaml
 
-Scrive:
-    runs/yolo/<name>/                   pesi, curve, grafici di Ultralytics (gitignored)
-    reports/metrics/<name>_test.json    mAP e AP per classe sul test (si può pubblicare)
+Writes:
+    runs/yolo/<name>/                   Ultralytics weights, curves, plots (git-ignored)
+    reports/metrics/<name>_test.json    test mAP and per-class AP (publishable)
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def main() -> None:
     model.train(data=cfg["data"], project=str(project), name=cfg["name"], exist_ok=True,
                 **cfg["train"])
 
-    # Valutazione del checkpoint migliore (scelto sulla validazione) sul test
+    # Evaluate the best checkpoint (chosen on validation) on the test split
     best = YOLO(project / cfg["name"] / "weights" / "best.pt")
     res = best.val(data=cfg["data"], split="test", imgsz=cfg["train"]["imgsz"],
                    device=cfg["train"]["device"], project=str(project),
@@ -53,9 +53,9 @@ def main() -> None:
     out.write_text(json.dumps(metrics, indent=2))
     t = metrics["test"]
     print(f"test: mAP50 {t['mAP50']:.3f} | mAP50-95 {t['mAP50_95']:.3f}")
-    print("AP50 per classe:", {k: round(v, 3) for k, v in t["per_class_AP50"].items()})
-    print(f"salvato {out}")
+    print("AP50 per class:", {k: round(v, 3) for k, v in t["per_class_AP50"].items()})
+    print(f"saved {out}")
 
 
-if __name__ == "__main__":  # necessario su Windows con workers > 0
+if __name__ == "__main__":  # required on Windows with workers > 0
     main()

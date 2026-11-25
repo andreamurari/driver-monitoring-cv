@@ -62,6 +62,6 @@ def test_too_many_holdout_drivers_raises(df):
 
 
 def test_random_image_split_does_leak_drivers(df):
-    """Documenta il motivo dell'esperimento: lo split casuale mescola i conducenti."""
+    """Documents why the experiment exists: a random split mixes drivers."""
     parts = random_image_split(df)
     assert set(parts["train"]["subject"]) & set(parts["test"]["subject"])

@@ -1,16 +1,16 @@
-"""Pre-etichette automatiche per Label Studio: si correggono invece di disegnare da zero.
+"""Automatic pre-labels for Label Studio: correcting them is faster than drawing from scratch.
 
-Fonti:
-    phone, cup  YOLO addestrato su COCO (classi "cell phone"; "cup" e "bottle" -> cup)
-    hand        MediaPipe HandLandmarker: riquadro attorno ai 21 punti della mano
+Sources:
+    phone, cup  YOLO trained on COCO (class "cell phone"; "cup" and "bottle" -> cup)
+    hand        MediaPipe HandLandmarker: box around the 21 hand landmarks
     face        MediaPipe FaceDetector
 
-Uso:
-    python scripts/prelabel.py                       # tutte le immagini di annotations/selection.csv
-    python scripts/prelabel.py --limit 5             # prova veloce
+Usage:
+    python scripts/prelabel.py                       # all images in annotations/selection.csv
+    python scripts/prelabel.py --limit 5             # quick test
 
-Scrive scratch/prelabels.json (gitignored: contiene i percorsi delle immagini, si importa
-in Label Studio). Le immagini restano dove sono: Label Studio le legge da data/raw.
+Writes scratch/prelabels.json (git-ignored: it holds image paths; it is imported into
+Label Studio). The images stay where they are: Label Studio reads them from data/raw.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision
 from ultralytics import YOLO
 
-DATA_ROOT = Path("data/raw")  # la stessa cartella abilitata in Label Studio (DOCUMENT_ROOT)
+DATA_ROOT = Path("data/raw")  # the same folder enabled in Label Studio (DOCUMENT_ROOT)
 IMG_DIR = DATA_ROOT / "imgs/train"
 YOLO_CLASSES = {67: "phone", 41: "cup", 39: "cup"}  # COCO: cell phone, cup, bottle
 MODEL_VERSION = "prelabel-v1"
@@ -32,12 +32,12 @@ MODEL_VERSION = "prelabel-v1"
 
 def to_ls_box(x0: float, y0: float, x1: float, y1: float, w: int, h: int,
               label: str, score: float) -> dict:
-    """Riquadro in pixel (x0, y0) - (x1, y1) -> risultato di Label Studio.
+    """Box in pixels (x0, y0) - (x1, y1) -> Label Studio result.
 
-    Label Studio vuole l'angolo in alto a sinistra e le dimensioni in PERCENTUALE
-    della larghezza e dell'altezza dell'immagine (0-100), non in pixel.
+    Label Studio wants the top-left corner and the size as a PERCENTAGE of the image
+    width and height (0-100), not in pixels.
     """
-    # dentro l'immagine (i riquadri allargati delle mani possono uscire dal bordo)
+    # inside the image (enlarged hand boxes can cross the border)
     x0 = max(0, x0)
     x1 = min(w, x1)
     y0 = max(0, y0)
@@ -55,10 +55,10 @@ def to_ls_box(x0: float, y0: float, x1: float, y1: float, w: int, h: int,
 
 
 def hand_box(landmarks, w: int, h: int, margin: float = 0.15) -> tuple[float, float, float, float]:
-    """Riquadro in pixel attorno ai 21 punti di una mano (coordinate normalizzate 0-1).
+    """Box in pixels around the 21 landmarks of a hand (normalised 0-1 coordinates).
 
-    I punti sono su articolazioni e polpastrelli: il riquadro stretto taglia il bordo della
-    mano, per questo si allarga di `margin` (15% del lato) per parte.
+    The landmarks sit on joints and fingertips: a tight box cuts the edge of the hand,
+    so it is enlarged by `margin` (15% of the side) on each side.
     """
     xs = [p.x for p in landmarks]
     ys = [p.y for p in landmarks]
@@ -74,8 +74,8 @@ def main() -> None:
     parser.add_argument("--selection", default="annotations/selection.csv")
     parser.add_argument("--out", default="scratch/prelabels.json")
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--conf", type=float, default=0.15, help="soglia bassa: meglio un riquadro"
-                        " in più da cancellare che uno in meno da disegnare")
+    parser.add_argument("--conf", type=float, default=0.15, help="low threshold: better an extra box"
+                        " to delete than a missing one to draw")
     args = parser.parse_args()
 
     yolo = YOLO("models/yolo11s.pt")
@@ -97,18 +97,18 @@ def main() -> None:
         w, h = image.width, image.height
         result = []
 
-        # Telefono e bicchiere: YOLO, solo le 3 classi COCO che ci interessano
+        # Phone and cup: YOLO, only the 3 COCO classes we need
         det = yolo(str(path), conf=args.conf, classes=list(YOLO_CLASSES), verbose=False)[0]
         for (x0, y0, x1, y1), cls, conf in zip(det.boxes.xyxy.tolist(), det.boxes.cls.tolist(),
                                               det.boxes.conf.tolist()):
             result.append(to_ls_box(x0, y0, x1, y1, w, h, YOLO_CLASSES[int(cls)], conf))
 
-        # Mani: un riquadro per ogni mano trovata
+        # Hands: one box per detected hand
         for landmarks in hands.detect(image).hand_landmarks:
-            # HandLandmarker non dà un punteggio per riquadro: 1.0 come segnaposto
+            # HandLandmarker gives no per-box score: 1.0 as a placeholder
             result.append(to_ls_box(*hand_box(landmarks, w, h), w, h, "hand", 1.0))
 
-        # Volti: il detector restituisce già un riquadro in pixel
+        # Faces: the detector already returns a box in pixels
         for d in faces.detect(image).detections:
             b = d.bounding_box
             result.append(to_ls_box(b.origin_x, b.origin_y, b.origin_x + b.width,
@@ -117,7 +117,7 @@ def main() -> None:
         for r in result:
             counts[r["value"]["rectanglelabels"][0]] += 1
         tasks.append({
-            # Percorso relativo a DATA_ROOT, servito da Label Studio come file locale
+            # Path relative to DATA_ROOT, served by Label Studio as a local file
             "data": {"image": f"/data/local-files/?d=imgs/train/{row.classname}/{row.img}",
                      "img": row.img, "split": row.split, "classname": row.classname,
                      "info": f"{row.img} | {row.subject} | {row.classname} | {row.split}"},
@@ -126,8 +126,8 @@ def main() -> None:
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(tasks, indent=1))
-    print(f"{len(tasks)} immagini, riquadri proposti: {counts}")
-    print(f"salvato in {args.out}: da importare in Label Studio")
+    print(f"{len(tasks)} images, proposed boxes: {counts}")
+    print(f"saved to {args.out}: import it into Label Studio")
 
 
 if __name__ == "__main__":

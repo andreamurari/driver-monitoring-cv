@@ -1,4 +1,4 @@
-<!-- Configurazione di Label Studio: riquadri per 4 classi. Da incollare in
+<!-- Label Studio configuration: boxes for 4 classes. Paste into
      Project > Settings > Labeling Interface > Code. -->
 <View>
   <Image name="image" value="$image" zoom="true" zoomControl="true"/>

@@ -1,8 +1,8 @@
-"""Split per conducente per State Farm Distracted Driver.
+"""Driver-level splits for State Farm Distracted Driver.
 
-Le immagini dello stesso conducente sono quasi identiche tra loro (fotogrammi
-consecutivi): uno split casuale per immagine fa trapelare informazione dal
-train al test e gonfia l'accuratezza. Qui si divide per `subject`.
+Images of the same driver are near identical (consecutive frames): a random split
+by image leaks information from train to test and inflates accuracy. Here the data
+is split by `subject`.
 """
 from __future__ import annotations
 
@@ -19,19 +19,19 @@ def load_driver_list(csv_path: str | Path) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
-        raise ValueError(f"Colonne mancanti in {csv_path}: {sorted(missing)}")
+        raise ValueError(f"Missing columns in {csv_path}: {sorted(missing)}")
     return df
 
 
 def make_group_splits(
     df: pd.DataFrame, n_val: int = 4, n_test: int = 4, seed: int = 0
 ) -> dict[str, list[str]]:
-    """Assegna interi conducenti a train/val/test in modo riproducibile."""
+    """Assign whole drivers to train/val/test, reproducibly."""
     subjects = sorted(df["subject"].unique())
     if n_val + n_test >= len(subjects):
         raise ValueError(
-            f"Servono più conducenti: {len(subjects)} disponibili, "
-            f"{n_val + n_test} richiesti per val+test"
+            f"Not enough drivers: {len(subjects)} available, "
+            f"{n_val + n_test} requested for val+test"
         )
     rng = random.Random(seed)
     shuffled = subjects[:]
@@ -48,15 +48,15 @@ def assert_no_overlap(splits: dict[str, list[str]]) -> None:
         for b in names[i + 1 :]:
             common = set(splits[a]) & set(splits[b])
             if common:
-                raise AssertionError(f"Conducenti in comune tra {a} e {b}: {sorted(common)}")
+                raise AssertionError(f"Drivers shared by {a} and {b}: {sorted(common)}")
 
 
 def summarize(df: pd.DataFrame, splits: dict[str, list[str]]) -> pd.DataFrame:
-    """Immagini e conducenti per split, e conteggio per classe."""
+    """Images and drivers per split, and counts per class."""
     rows = []
     for name, subs in splits.items():
         part = df[df["subject"].isin(subs)]
-        row = {"split": name, "conducenti": len(subs), "immagini": len(part)}
+        row = {"split": name, "drivers": len(subs), "images": len(part)}
         counts = part["classname"].value_counts().sort_index()
         row.update({c: int(counts.get(c, 0)) for c in sorted(df["classname"].unique())})
         rows.append(row)
@@ -75,7 +75,7 @@ def load_splits(path: str | Path) -> dict[str, list[str]]:
 
 
 def random_image_split(df: pd.DataFrame, frac_val: float = 0.15, frac_test: float = 0.15, seed: int = 0):
-    """Split casuale per immagine, SOLO per l'esperimento sul leakage (giorno 2)."""
+    """Random split by image, ONLY for the leakage experiment (day 2)."""
     shuffled = df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
     n_test = int(len(shuffled) * frac_test)
     n_val = int(len(shuffled) * frac_val)

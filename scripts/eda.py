@@ -1,8 +1,8 @@
-"""EDA di base: classi, conducenti, immagini campione. Scrive in reports/.
+"""Basic EDA: classes, drivers, sample images. Writes to reports/.
 
-Uso: python scripts/eda.py --csv data/raw/driver_imgs_list.csv --imgs data/raw/imgs/train
-Le immagini campione restano in reports/samples/ (che e' in .gitignore): non
-vanno committate finche' non hai letto le regole di State Farm.
+Usage: python scripts/eda.py --csv data/raw/driver_imgs_list.csv --imgs data/raw/imgs/train
+Sample images stay in reports/samples/ (git-ignored): the State Farm rules do not
+allow publishing them.
 """
 import argparse
 import sys
@@ -22,7 +22,7 @@ from dms.data.splits import load_driver_list
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--csv", default="data/raw/driver_imgs_list.csv")
-    p.add_argument("--imgs", default=None, help="cartella con le sottocartelle c0..c9")
+    p.add_argument("--imgs", default=None, help="folder with the c0..c9 subfolders")
     p.add_argument("--out", default="reports")
     args = p.parse_args()
 
@@ -36,7 +36,7 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=(8, 3.5))
     per_class.plot.bar(ax=ax)
-    ax.set_title("Immagini per classe")
+    ax.set_title("Images per class")
     ax.set_xlabel("")
     fig.tight_layout()
     fig.savefig(out / "eda_classes.png", dpi=150)
@@ -44,7 +44,7 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=(10, 3.5))
     per_subject.plot.bar(ax=ax)
-    ax.set_title("Immagini per conducente")
+    ax.set_title("Images per driver")
     ax.set_xlabel("")
     fig.tight_layout()
     fig.savefig(out / "eda_subjects.png", dpi=150)
@@ -53,13 +53,13 @@ def main() -> None:
     lines = [
         "# EDA State Farm",
         "",
-        f"- Immagini etichettate: {len(df)}",
-        f"- Conducenti: {df['subject'].nunique()}",
-        f"- Immagini per conducente: min {per_subject.min()}, mediana {int(per_subject.median())}, max {per_subject.max()}",
-        f"- Rapporto classe piu' grande / piu' piccola: {per_class.max() / per_class.min():.2f}",
-        f"- Coppie conducente-classe vuote: {int((cross == 0).sum().sum())}",
+        f"- Labelled images: {len(df)}",
+        f"- Drivers: {df['subject'].nunique()}",
+        f"- Images per driver: min {per_subject.min()}, median {int(per_subject.median())}, max {per_subject.max()}",
+        f"- Largest / smallest class ratio: {per_class.max() / per_class.min():.2f}",
+        f"- Empty driver-class pairs: {int((cross == 0).sum().sum())}",
         "",
-        "| Classe | Significato | Immagini |",
+        "| Class | Meaning | Images |",
         "| --- | --- | --- |",
     ]
     for c, n in per_class.items():
@@ -81,7 +81,7 @@ def main() -> None:
         fig.tight_layout()
         fig.savefig(samples / "one_per_class.png", dpi=120)
         plt.close(fig)
-        print(f"Campioni salvati in {samples}")
+        print(f"Samples saved to {samples}")
 
 
 if __name__ == "__main__":

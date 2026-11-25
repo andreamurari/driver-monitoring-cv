@@ -1,6 +1,6 @@
-"""Crea splits.json con split per conducente.
+"""Create splits.json with a split by driver.
 
-Uso: python scripts/make_splits.py --csv data/raw/driver_imgs_list.csv
+Usage: python scripts/make_splits.py --csv data/raw/driver_imgs_list.csv
 """
 import argparse
 import sys
@@ -31,9 +31,9 @@ def main() -> None:
     assert_no_overlap(splits)
     save_splits(splits, args.seed, args.out)
 
-    print(f"{df['subject'].nunique()} conducenti, {len(df)} immagini")
+    print(f"{df['subject'].nunique()} drivers, {len(df)} images")
     print(summarize(df, splits).to_string(index=False))
-    print(f"Salvato in {args.out}")
+    print(f"Saved to {args.out}")
 
 
 if __name__ == "__main__":
