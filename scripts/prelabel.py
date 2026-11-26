@@ -76,8 +76,14 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--conf", type=float, default=0.15, help="low threshold: better an extra box"
                         " to delete than a missing one to draw")
+    parser.add_argument("--batch", type=int, default=None, help="pre-label only this batch")
+    parser.add_argument("--model", default=None,
+                        help="our trained detector (best.pt): it predicts all 4 classes itself,"
+                             " instead of YOLO-COCO + MediaPipe")
     args = parser.parse_args()
 
+    if args.model:
+        own = YOLO(args.model)
     yolo = YOLO("models/yolo11s.pt")
     hands = vision.HandLandmarker.create_from_options(vision.HandLandmarkerOptions(
         base_options=mp_tasks.BaseOptions(model_asset_path="models/hand_landmarker.task"),
@@ -87,6 +93,9 @@ def main() -> None:
         min_detection_confidence=0.3))
 
     sel = pd.read_csv(args.selection)
+    # TODO 2: with --batch, keep only the rows of that batch (column "batch" of selection.csv)
+    if args.batch:
+        sel = sel[sel["batch"] == args.batch]
     if args.limit:
         sel = sel.head(args.limit)
 
@@ -96,6 +105,29 @@ def main() -> None:
         image = mp.Image.create_from_file(str(path))
         w, h = image.width, image.height
         result = []
+
+        if args.model:
+            # Our detector already knows the 4 classes, with our names (own.names: id -> name)
+            det = own(str(path), conf=args.conf, verbose=False)[0]
+            # TODO 3: one Label Studio box per detection, like the YOLO-COCO loop below,
+            #   but the label is own.names[int(cls)] (no YOLO_CLASSES mapping needed)
+            for (x0, y0, x1, y1), cls, conf in zip(det.boxes.xyxy.tolist(), det.boxes.cls.tolist(),
+                                                  det.boxes.conf.tolist()):
+                result.append(to_ls_box(x0, y0, x1, y1, w, h, own.names[int(cls)], conf))
+            # TODO 4: skip MediaPipe and the COCO model for this image: jump to the bookkeeping
+            #   below (hint: move the counting/tasks.append part into a small helper, or use
+            #   an if/else around the three blocks that follow)
+            if args.model:
+                for r in result:
+                    counts[r["value"]["rectanglelabels"][0]] += 1
+                tasks.append({
+                    # Path relative to DATA_ROOT, served by Label Studio as a local file
+                    "data": {"image": f"/data/local-files/?d=imgs/train/{row.classname}/{row.img}",
+                             "img": row.img, "split": row.split, "classname": row.classname,
+                             "info": f"{row.img} | {row.subject} | {row.classname} | {row.split}"},
+                    "predictions": [{"model_version": MODEL_VERSION, "result": result}],
+                })
+                continue  # skip the rest of the loop
 
         # Phone and cup: YOLO, only the 3 COCO classes we need
         det = yolo(str(path), conf=args.conf, classes=list(YOLO_CLASSES), verbose=False)[0]

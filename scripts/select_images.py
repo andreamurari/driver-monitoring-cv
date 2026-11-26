@@ -47,6 +47,8 @@ def main() -> None:
     parser.add_argument("--splits", default="splits.json")
     parser.add_argument("--batch", type=int, default=1)
     parser.add_argument("--scale", type=float, default=1.0, help="multiplies PER_CLASS")
+    parser.add_argument("--only", nargs="+", default=None,
+                        help="State Farm classes to sample (targeted batch), e.g. --only c1 c2 c3 c4 c6")
     args = parser.parse_args()
 
     df = load_driver_list(args.csv)  # columns: subject, classname, img (CSV order)
@@ -60,6 +62,10 @@ def main() -> None:
     for split, subjects in splits.items():
         part = df[df["subject"].isin(subjects)]
         for classname, n_class in PER_CLASS.items():
+            # TODO 1: with --only, skip the classes that are not in args.only
+            #   (args.only is None when the option is not given: then keep every class)
+            if args.only and classname not in args.only:
+                continue
             n = round(n_class * args.scale * SPLIT_SHARE[split])
             # Sorted by driver, the evenly spaced positions fall on all the split's drivers
             # in proportion to their images
