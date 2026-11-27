@@ -183,15 +183,21 @@ split of day 2, through the labels instead of the images.
 |---|---|---|---|---|---|---|---|---|
 | 2026-11-25 | yolo11n_batch1_s0 (re-evaluated) | configs/yolo11n.yaml | 254326b | 0 | 100 images | 0.752 | 0.392 | 0.555 / 0.684 / 0.960 / 0.810 |
 | 2026-11-27 | yolo11n_batch2_s0 | configs/yolo11n_batch2.yaml | b6e6552 + config | 0 | 172 images | **0.789** | 0.376 | 0.638 / 0.752 / 0.940 / 0.827 |
+| 2026-11-27 | yolo11n_batch2_s1 | configs/yolo11n_batch2_s1.yaml | 2950acb + config | 1 | 172 images | 0.773 | 0.375 | 0.576 / 0.735 / 0.953 / 0.829 |
 
-Metrics: `reports/metrics/yolo11n_batch1_s0_test41.json`, `yolo11n_batch2_s0_test.json`
+Metrics: `reports/metrics/yolo11n_batch1_s0_test41.json`, `yolo11n_batch2_s0_test.json`,
+`yolo11n_batch2_s1_test.json`
 (`train_yolo --eval-only` re-evaluates a trained model when the test set changes).
 
-- **mAP@0.5 +0.037**, from the two targeted classes (phone +0.08, cup +0.07). One seed
-  only: the noise between seeds is not measured yet.
+- **Seed noise:** mAP@0.5 0.789 and 0.773 (gap 0.016). Per class the phone moves most
+  (0.638 vs 0.576: fewest boxes, most ambiguous), hands and faces barely move.
+- **mAP@0.5 +0.029** on the mean of the two seeds (0.781 vs 0.752), almost twice the seed
+  gap, all from the two targeted classes (phone +0.05, cup +0.06). The old model has one
+  seed only, so its 0.752 carries the same uncertainty.
 - **mAP@0.5:0.95 -0.016**: within label noise (next point).
-- **Face recall drops** (0.80 to 0.71) on every test subset. Possible cause: batch-2 face
-  boxes follow the old detector's style, batch-1 boxes MediaPipe's. Not confirmed.
+- **Face recall drops** (0.80 to 0.71 and 0.69) with both seeds and on every test subset:
+  not noise. Possible cause: batch-2 face boxes follow the old detector's style, batch-1
+  boxes MediaPipe's. Not confirmed.
 - **Still improving:** validation mAP@0.5 was still rising at epoch 60 (0.84).
 
 ### Annotator consistency
@@ -230,7 +236,8 @@ COCO/MediaPipe draft), boxes matched by class and IoU >= 0.3:
 - [ ] `--note` argument in `benchmark.py`, to record measurement conditions in the JSON
 - [ ] Kaggle zip cell: rename the file every day, without `-j`
 - [x] Detector: targeted annotation batch for phones and cups
-- [ ] Detector: second seed of yolo11n_batch2, to measure the noise on mAP@0.5
+- [x] Detector: second seed of yolo11n_batch2, to measure the noise on mAP@0.5
+- [ ] Detector: second seed of the batch-1 model, on the clean test
 - [ ] Detector ablations: imgsz 960, yolo11s
 - [ ] Detector: per-driver metrics and error types; check the face recall drop
 - [ ] Detector: more epochs (validation mAP still rising at 60)
