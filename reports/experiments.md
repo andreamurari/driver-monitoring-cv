@@ -195,9 +195,8 @@ Metrics: `reports/metrics/yolo11n_batch1_s0_test41.json`, `yolo11n_batch2_s0_tes
   gap, all from the two targeted classes (phone +0.05, cup +0.06). The old model has one
   seed only, so its 0.752 carries the same uncertainty.
 - **mAP@0.5:0.95 -0.016**: within label noise (next point).
-- **Face recall drops** (0.80 to 0.71 and 0.69) with both seeds and on every test subset:
-  not noise. Possible cause: batch-2 face boxes follow the old detector's style, batch-1
-  boxes MediaPipe's. Not confirmed.
+- **Face recall drops** in the Ultralytics summary (0.80 to 0.71 and 0.69, both seeds). The
+  error analysis below shows it is 2 faces out of 41 at a fixed threshold: not a real effect.
 - **Still improving:** validation mAP@0.5 was still rising at epoch 60 (0.84).
 
 ### Annotator consistency
@@ -222,6 +221,50 @@ COCO/MediaPipe draft), boxes matched by class and IoU >= 0.3:
 - **Phones are the most ambiguous class** (IoU 0.64: partly hidden by the hand, at the
   ear), and also the class where the detectors do worst.
 
+### Detector error analysis
+
+`python -m dms.detection.error_analysis --run <run>`: every true box and prediction (conf >=
+0.25) gets one type: tp (same class, IoU >= 0.5), localization (same class, IoU 0.1-0.5),
+wrong class, missed, background false positive. Per-box rows in
+`reports/metrics/<run>_test_errors.csv`.
+
+True boxes by type (old model / new model seed 0 / seed 1):
+
+| Class | tp | localization | missed |
+|---|---|---|---|
+| phone (25) | 12 / 17 / 16 | 1 / 2 / 3 | 12 / 6 / 6 |
+| cup (13) | 9 / 10 / 10 | 1 / 0 / 0 | 3 / 3 / 3 |
+| hand (78) | 73 / 74 / 71 | 2 / 1 / 3 | 3 / 3 / 4 |
+| face (41) | 33 / 31 / 31 | 2 / 3 / 3 | 6 / 7 / 7 |
+
+Background false positives: 7 / 8 / 7. No wrong-class errors.
+
+Recall per test driver (number of true boxes in brackets), new model seed 0:
+
+| Driver | phone | cup | hand | face |
+|---|---|---|---|---|
+| p002 | 0.73 (11) | 0.50 (6) | 1.00 (31) | 0.94 (17) |
+| p047 | 0.40 (5) | 1.00 (2) | 1.00 (12) | 1.00 (6) |
+| p052 | - | 1.00 (3) | 1.00 (6) | 0.67 (3) |
+| p072 | 0.78 (9) | 1.00 (2) | 0.86 (29) | **0.47 (15)** |
+
+- **Batch 2 halved missed phones** (12 to 6), the gain behind the higher mAP@0.5. Cups and
+  hands do not change.
+- **Errors are misses, not misplaced boxes:** localization errors are few (6-9 of 157)
+  and there are no class confusions. The detector either sees an object or not.
+- **The face problem is one driver.** 7 to 9 of the 8-10 face errors in every model are
+  driver p072 (face recall 0.40-0.53, against 0.94-1.00 for p002 and p047). The old model
+  fails on the same driver, so batch 2 did not cause it. The face is in profile, against
+  an overexposed side window, partly covered by long hair and close to the top edge of the
+  frame. The 18 training drivers include few faces like this; MediaPipe also missed most
+  such faces in the pre-labels, so they were drawn by hand.
+- **Bias check (planned on day 6):** p072 is also a heavier-set driver, one of the groups
+  where the pre-labels were expected to be weaker. With 4 test drivers we cannot separate
+  pose, lighting and body type: this is a hypothesis for more drivers or a grouped
+  cross-validation, not a conclusion.
+- Phones of p072: recall 0.22 with the old model, 0.67-0.78 with the new one; batch 2
+  helped most on the hardest driver.
+
 ## Next steps
 
 - [x] Day 3: ResNet50, augmentation ablation, 224 vs 320
@@ -239,5 +282,6 @@ COCO/MediaPipe draft), boxes matched by class and IoU >= 0.3:
 - [x] Detector: second seed of yolo11n_batch2, to measure the noise on mAP@0.5
 - [ ] Detector: second seed of the batch-1 model, on the clean test
 - [ ] Detector ablations: imgsz 960, yolo11s
-- [ ] Detector: per-driver metrics and error types; check the face recall drop
+- [x] Detector: per-driver metrics and error types; check the face recall drop
+- [ ] Faces in profile against bright windows (p072): targeted annotation from training drivers
 - [ ] Detector: more epochs (validation mAP still rising at 60)
