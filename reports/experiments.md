@@ -142,6 +142,80 @@ images of the 4 test drivers).
 - **Faces:** AP 0.96 on validation but 0.76 on test; to be checked per driver.
 - **Still improving:** validation mAP was still rising at epoch 60.
 
+## Day 8: second annotation batch, and a contaminated test set
+
+Targeted batch of 108 images from c1-c4 and c6 (phones and cups), pre-labelled by the
+day-7 detector instead of YOLO-COCO + MediaPipe. Dataset: 254 images (172 / 41 / 41).
+
+### Correcting own-model pre-labels
+
+| Class | Kept | Deleted | Added | Moved |
+|---|---|---|---|---|
+| phone | 74 | 2 | 15 | 0 |
+| cup | 65 | 3 | 4 | 0 |
+| hand | 218 | 2 | 3 | 1 |
+| face | 107 | 4 | 2 | 0 |
+
+76 of 108 images were accepted without changes. Prediction "fewer corrections than batch 1"
+confirmed; "mostly cups" refuted: the old detector mostly missed phones.
+
+### The test set was contaminated
+
+The 18 test images of batch 2 were also pre-labelled by the day-7 detector, and mostly
+accepted unchanged. On them the old model was scored partly against its own predictions:
+
+| Test subset | Labels | Old model mAP@0.5 | Old model mAP@0.5:0.95 |
+|---|---|---|---|
+| batch 1 (23 img) | COCO/MediaPipe draft, corrected | 0.741 | 0.380 |
+| batch 2 (18 img) | own-model draft, corrected | 0.929 | **0.729** |
+| batch 2 (18 img) | re-annotated from a COCO/MediaPipe draft | 0.802 | 0.432 |
+
+On the contaminated test the new model looked worse on mAP@0.5:0.95 in every class (0.480
+vs 0.535), including hands and faces that batch 2 did not target. The 18 images were
+re-annotated with the batch-1 protocol (`scripts/subset_test.py` builds per-batch test
+subsets). **Rule from now on: test images are never pre-labelled by a model under
+evaluation, or by one of its ancestors.** It is the same kind of leakage as the random
+split of day 2, through the labels instead of the images.
+
+### Results on the clean test (41 images)
+
+| Date | Run | Config | Commit | Seed | Train data | Test mAP@0.5 | Test mAP@0.5:0.95 | AP@0.5 phone / cup / hand / face |
+|---|---|---|---|---|---|---|---|---|
+| 2026-11-25 | yolo11n_batch1_s0 (re-evaluated) | configs/yolo11n.yaml | 254326b | 0 | 100 images | 0.752 | 0.392 | 0.555 / 0.684 / 0.960 / 0.810 |
+| 2026-11-27 | yolo11n_batch2_s0 | configs/yolo11n_batch2.yaml | b6e6552 + config | 0 | 172 images | **0.789** | 0.376 | 0.638 / 0.752 / 0.940 / 0.827 |
+
+Metrics: `reports/metrics/yolo11n_batch1_s0_test41.json`, `yolo11n_batch2_s0_test.json`
+(`train_yolo --eval-only` re-evaluates a trained model when the test set changes).
+
+- **mAP@0.5 +0.037**, from the two targeted classes (phone +0.08, cup +0.07). One seed
+  only: the noise between seeds is not measured yet.
+- **mAP@0.5:0.95 -0.016**: within label noise (next point).
+- **Face recall drops** (0.80 to 0.71) on every test subset. Possible cause: batch-2 face
+  boxes follow the old detector's style, batch-1 boxes MediaPipe's. Not confirmed.
+- **Still improving:** validation mAP@0.5 was still rising at epoch 60 (0.84).
+
+### Annotator consistency
+
+The same 18 test images, annotated twice by the same person (own-model draft vs
+COCO/MediaPipe draft), boxes matched by class and IoU >= 0.3:
+
+| Class | Matched | Mean IoU | IoU < 0.75 | Only in 1st | Only in 2nd |
+|---|---|---|---|---|---|
+| phone | 12 | 0.64 | 9 | 2 | 5 |
+| cup | 5 | 0.75 | 2 | 3 | 1 |
+| hand | 36 | 0.76 | 17 | 0 | 0 |
+| face | 18 | 0.75 | 10 | 0 | 0 |
+| all | 71 | 0.73 | 38 | | |
+
+- **Label noise caps mAP@0.5:0.95:** the annotator agrees with themselves at IoU 0.73 on
+  average, more than half the time below 0.75. Above that threshold the metric measures
+  label noise more than the model. **mAP@0.5 is the main detector metric from now on**;
+  mAP@0.5:0.95 is reported with this caveat.
+- **Anchoring hides objects:** starting from the own-model draft, 5 phones were missed,
+  despite the 15 added by hand. Objects the draft does not propose are easy to overlook.
+- **Phones are the most ambiguous class** (IoU 0.64: partly hidden by the hand, at the
+  ear), and also the class where the detectors do worst.
+
 ## Next steps
 
 - [x] Day 3: ResNet50, augmentation ablation, 224 vs 320
@@ -155,4 +229,8 @@ images of the 4 test drivers).
 - [ ] Second seed for ResNet18 at 320, before calling it the best model
 - [ ] `--note` argument in `benchmark.py`, to record measurement conditions in the JSON
 - [ ] Kaggle zip cell: rename the file every day, without `-j`
-- [ ] Detector: per-driver metrics; targeted annotation batch for phones and cups
+- [x] Detector: targeted annotation batch for phones and cups
+- [ ] Detector: second seed of yolo11n_batch2, to measure the noise on mAP@0.5
+- [ ] Detector ablations: imgsz 960, yolo11s
+- [ ] Detector: per-driver metrics and error types; check the face recall drop
+- [ ] Detector: more epochs (validation mAP still rising at 60)
