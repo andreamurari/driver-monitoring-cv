@@ -184,6 +184,7 @@ split of day 2, through the labels instead of the images.
 | 2026-11-25 | yolo11n_batch1_s0 (re-evaluated) | configs/yolo11n.yaml | 254326b | 0 | 100 images | 0.752 | 0.392 | 0.555 / 0.684 / 0.960 / 0.810 |
 | 2026-11-27 | yolo11n_batch2_s0 | configs/yolo11n_batch2.yaml | b6e6552 + config | 0 | 172 images | **0.789** | 0.376 | 0.638 / 0.752 / 0.940 / 0.827 |
 | 2026-11-27 | yolo11n_batch2_s1 | configs/yolo11n_batch2_s1.yaml | 2950acb + config | 1 | 172 images | 0.773 | 0.375 | 0.576 / 0.735 / 0.953 / 0.829 |
+| 2026-11-27 | yolo11n_batch1_s1 | configs/yolo11n_batch1_s1.yaml | 57f4ea8 | 1 | 100 images | 0.709 | 0.319 | 0.458 / 0.627 / 0.942 / 0.809 |
 
 Metrics: `reports/metrics/yolo11n_batch1_s0_test41.json`, `yolo11n_batch2_s0_test.json`,
 `yolo11n_batch2_s1_test.json`
@@ -191,9 +192,10 @@ Metrics: `reports/metrics/yolo11n_batch1_s0_test41.json`, `yolo11n_batch2_s0_tes
 
 - **Seed noise:** mAP@0.5 0.789 and 0.773 (gap 0.016). Per class the phone moves most
   (0.638 vs 0.576: fewest boxes, most ambiguous), hands and faces barely move.
-- **mAP@0.5 +0.029** on the mean of the two seeds (0.781 vs 0.752), almost twice the seed
-  gap, all from the two targeted classes (phone +0.05, cup +0.06). The old model has one
-  seed only, so its 0.752 carries the same uncertainty.
+- **Batch 2 helps: +0.05 mAP@0.5** on the mean of two seeds per model (0.781 vs 0.731), and
+  both batch-2 seeds beat both batch-1 seeds. The gain comes from the two targeted classes
+  (phone +0.10, cup +0.09 on the means). The batch-1 model is also less stable across seeds
+  (gap 0.043 vs 0.016): fewer training images, more noise.
 - **mAP@0.5:0.95 -0.016**: within label noise (next point).
 - **Face recall drops** in the Ultralytics summary (0.80 to 0.71 and 0.69, both seeds). The
   error analysis below shows it is 2 faces out of 41 at a fixed threshold: not a real effect.
@@ -265,6 +267,28 @@ Recall per test driver (number of true boxes in brackets), new model seed 0:
 - Phones of p072: recall 0.22 with the old model, 0.67-0.78 with the new one; batch 2
   helped most on the hardest driver.
 
+### Detector ablations: resolution and model size
+
+One change at a time from yolo11n_batch2_s0 (640 px, 2.6 M parameters, mAP@0.5 0.789; seed
+gap 0.016). Inference time: Ultralytics test-time measure, CPU, batch 1.
+
+| Run | Config | Commit | Change | Test mAP@0.5 | Test mAP@0.5:0.95 | AP@0.5 phone / cup / hand / face | Inference |
+|---|---|---|---|---|---|---|---|
+| yolo11n_batch2_960_s0 | configs/yolo11n_batch2_960.yaml | 57f4ea8 | imgsz 960 | 0.793 | 0.365 | 0.647 / 0.758 / 0.953 / 0.816 | 82 ms |
+| yolo11s_batch2_s0 | configs/yolo11s_batch2.yaml | 57f4ea8 | yolo11s, 9.4 M params | 0.769 | 0.368 | 0.571 / 0.764 / 0.959 / 0.783 | 99 ms |
+
+Reference yolo11n at 640: 36 ms.
+
+- **960 px: no gain** (+0.004, a quarter of the seed gap) for 2.3x the inference time and
+  2.2x the training time. The images are 640 px wide: going to 960 upscales them and adds
+  no detail, so small phones and cups do not get easier.
+- **yolo11s: no gain** (-0.020, about one seed gap) for 2.8x the inference time. It stopped
+  early, best epoch 37 (patience 15): 3.6x the parameters on 172 images.
+- **Conclusion:** at this size the detector is limited by data, not by model capacity or
+  resolution. Batch 2 (+72 training images) moved mAP@0.5 by 0.05; the two ablations did
+  not move it at all. The working detector stays **yolo11n at 640 px, trained on both
+  batches**; the next gains have to come from data (faces in profile, phones).
+
 ## Next steps
 
 - [x] Day 3: ResNet50, augmentation ablation, 224 vs 320
@@ -280,8 +304,8 @@ Recall per test driver (number of true boxes in brackets), new model seed 0:
 - [ ] Kaggle zip cell: rename the file every day, without `-j`
 - [x] Detector: targeted annotation batch for phones and cups
 - [x] Detector: second seed of yolo11n_batch2, to measure the noise on mAP@0.5
-- [ ] Detector: second seed of the batch-1 model, on the clean test
-- [ ] Detector ablations: imgsz 960, yolo11s
+- [x] Detector: second seed of the batch-1 model, on the clean test
+- [x] Detector ablations: imgsz 960, yolo11s
 - [x] Detector: per-driver metrics and error types; check the face recall drop
 - [ ] Faces in profile against bright windows (p072): targeted annotation from training drivers
 - [ ] Detector: more epochs (validation mAP still rising at 60)

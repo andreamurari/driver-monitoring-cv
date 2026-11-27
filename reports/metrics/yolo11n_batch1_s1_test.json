@@ -1,0 +1,36 @@
+{
+  "config": {
+    "name": "yolo11n_batch1_s1",
+    "model": "models/yolo11n.pt",
+    "data": "data/yolo_upto_b1/data.yaml",
+    "train": {
+      "epochs": 60,
+      "patience": 15,
+      "imgsz": 640,
+      "batch": 8,
+      "workers": 2,
+      "device": "cpu",
+      "seed": 1,
+      "deterministic": true,
+      "fliplr": 0.5
+    }
+  },
+  "test": {
+    "mAP50": 0.708981835306963,
+    "mAP50_95": 0.3190033363269375,
+    "precision": 0.7287827360381653,
+    "recall": 0.682942464040025,
+    "per_class_AP50": {
+      "phone": 0.45766708124713934,
+      "cup": 0.6274075871134694,
+      "hand": 0.9416632098693427,
+      "face": 0.8091894629979003
+    },
+    "per_class_AP50_95": {
+      "phone": 0.19203675541138035,
+      "cup": 0.20591132268229312,
+      "hand": 0.46856605926014466,
+      "face": 0.40949920795393197
+    }
+  }
+}

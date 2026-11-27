@@ -1,17 +1,17 @@
 # Driver monitoring: distraction detection from in-cabin images
 
-Work in progress (day 7 of 14). Distraction classification on the State Farm Distracted
+Work in progress (day 8 of 14). Distraction classification on the State Farm Distracted
 Driver dataset, evaluated on drivers never seen in training, plus a phone / cup / hand /
 face detector trained on images I annotated myself. Every number below is measured and
 traceable to a config, a commit and a seed in [reports/experiments.md](reports/experiments.md).
 
 | Macro-F1, unseen drivers | mAP@0.5, detector | CPU latency, best classifier |
 | --- | --- | --- |
-| **0.908** (ResNet18, 320 px) | **0.74** (YOLO11n, 146 annotated images) | **50 ms** per frame |
+| **0.908** (ResNet18, 320 px) | **0.78** (YOLO11n, 254 annotated images) | **50 ms** per frame |
 
 Classifier metrics are on the validation drivers (4 people never seen in training); the
 held-out test drivers are used once, at the end of the project. Detector mAP is on its own
-test split: 23 annotated images of the 4 test drivers, so it is a first, noisy estimate.
+test split (41 annotated images of the 4 test drivers), mean of two seeds.
 Latency: batch 1, 4 CPU threads, laptop on mains power.
 
 ## What the project shows
@@ -36,15 +36,19 @@ Latency: batch 1, 4 CPU threads, laptop on mains power.
   sequence. Grad-CAM suggests the model looks at the background, not the head, for the
   passenger class: a possible shortcut, to be tested with background masking.
   Details in [reports/error_analysis_v1.md](reports/error_analysis_v1.md).
-- **Annotation.** 146 images labelled with boxes for phone, cup, hand and face in Label
-  Studio, starting from YOLO-COCO and MediaPipe pre-labels corrected by hand (+96 hands,
-  +21 cups). The pre-labels were noticeably worse for some drivers; per-driver metrics on the
-  trained detector will check whether the bias carries over. Guidelines in
+- **Annotation, and a contaminated test set caught.** 254 images labelled in Label Studio
+  (phone, cup, hand, face) in two batches. The second batch was pre-labelled by the first
+  detector, including its test images: scored partly against its own predictions, the old
+  model reached mAP@0.5:0.95 0.73 there, against 0.38 on independent labels. The test
+  images were re-annotated, and test labels now never start from a model under evaluation.
+  Annotating the same images twice also measured my own consistency (mean IoU 0.73), so
+  mAP@0.5 is the main detector metric. Guidelines in
   [annotations/GUIDELINES.md](annotations/GUIDELINES.md).
-- **First detector.** YOLO11n (2.6 M parameters) fine-tuned from COCO on CPU in 25 minutes:
-  test AP@0.5 0.95 for hands, 0.76 for faces, 0.66 for phones and 0.59 for cups. Phones and
-  cups, the objects the classifier confuses, are the weak classes: small, few examples
-  (8 and 7 in the test split) and, for cups, often white on a bright background.
+- **Detector: data beats model size.** YOLO11n (2.6 M parameters) fine-tuned from COCO on
+  CPU. A targeted batch of phone and cup images raised mAP@0.5 from 0.73 to 0.78 (two seeds
+  each) and halved missed phones; 960 px input and the 3.6x larger YOLO11s gave no gain for
+  2.3-2.8x the inference time. Errors are missed objects, not misplaced boxes, and most
+  missed faces belong to one test driver (face in profile against a bright window).
 
 ## Results so far
 
@@ -60,7 +64,7 @@ Validation set: 4 drivers never seen in training, 4,347 images.
 
 ## Next
 
-Detector refinement and a second, targeted annotation batch; a two-branch classifier that
+A two-branch classifier that
 adds detector crops of hands and phone; background masking to test the shortcut; ONNX
 export and int8 quantization; final runs with three seeds and a single evaluation on the
 test drivers.
